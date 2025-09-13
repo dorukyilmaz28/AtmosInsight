@@ -1,0 +1,36 @@
+{
+  "name": "weather-forecast-app",
+  "version": "1.0.0",
+  "description": "Modern weather forecasting and recommendation web app",
+  "main": "server.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon backend/server.js",
+    "client": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "start": "node backend/server.js",
+    "setup-ai": "cd backend && setup_ai.bat",
+    "install-ai": "cd backend && pip install -r requirements.txt",
+    "test-ai": "cd backend && python test_ai.py"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "weather",
+    "forecast",
+    "ai",
+    "react",
+    "express"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
