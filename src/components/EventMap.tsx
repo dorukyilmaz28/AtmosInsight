@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { MapPin, Thermometer, Wind, Droplets, Eye } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { WeatherData } from '@/types/weather';
+import type L from 'leaflet';
 
 interface EventMapProps {
   latitude: number;
@@ -14,7 +15,7 @@ interface EventMapProps {
 
 export default function EventMap({ latitude, longitude, location, eventType, weatherData }: EventMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && mapRef.current) {

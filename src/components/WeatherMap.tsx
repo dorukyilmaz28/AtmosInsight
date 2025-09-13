@@ -11,15 +11,17 @@ const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { 
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
 
 // Dynamic import for Leaflet
-let L: any = null;
+let L: typeof import('leaflet') | null = null;
 if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   L = require('leaflet');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('leaflet/dist/leaflet.css');
 }
 
 // Fix for default markers in React Leaflet
 if (L) {
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
@@ -29,7 +31,7 @@ if (L) {
 
 // Custom weather icons
 const createWeatherIcon = (weatherCode: number, size: number = 30) => {
-  if (!L) return L.divIcon({ html: '🌤️', className: 'custom-div-icon', iconSize: [size, size] });
+  if (!L) return undefined;
 
   let iconUrl = '';
   let iconColor = '#3b82f6';

@@ -110,8 +110,8 @@ export default function EventWeatherSearch({ onSearch }: EventWeatherSearchProps
           });
         } else {
           // Try with just city name
-          let cityOnlyResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&format=json`);
-          let cityOnlyData = await cityOnlyResponse.json();
+          const cityOnlyResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&format=json`);
+          const cityOnlyData = await cityOnlyResponse.json();
           
           if (cityOnlyData.results && cityOnlyData.results.length > 0) {
             const cityOnlyResult = cityOnlyData.results[0];

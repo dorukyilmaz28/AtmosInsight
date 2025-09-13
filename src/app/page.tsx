@@ -8,7 +8,7 @@ import EventWeatherResults from '@/components/EventWeatherResults';
 import WeatherMap from '@/components/WeatherMap';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { WeatherData } from '@/types/weather';
-import { Map, Search, Activity, BarChart3, Globe, Settings } from 'lucide-react';
+import { Map, Search, Activity } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Home() {
@@ -75,7 +75,7 @@ export default function Home() {
     setEventData(null);
 
     try {
-      const response = await fetch(`http://localhost:5000/api/weather?location=${encodeURIComponent(location)}&date=${date}`);
+      const response = await fetch(`/api/weather?location=${encodeURIComponent(location)}&date=${date}`);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -98,7 +98,7 @@ export default function Home() {
     setEventData(eventData);
 
     try {
-      const response = await fetch(`http://localhost:5000/api/weather?location=${encodeURIComponent(eventData.location)}&date=${eventData.date}&eventType=${encodeURIComponent(eventData.eventType)}`);
+      const response = await fetch(`/api/weather?location=${encodeURIComponent(eventData.location)}&date=${eventData.date}&eventType=${encodeURIComponent(eventData.eventType)}`);
       
       if (!response.ok) {
         const errorData = await response.json();
