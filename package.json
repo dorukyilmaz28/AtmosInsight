@@ -6,8 +6,8 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "nodemon backend/server.js",
     "client": "cd frontend && npm run dev",
-    "build": "cd frontend && npm install && npm run build",
-    "start": "cd frontend && npm run start",
+    "build": "npm install && npm run build",
+    "start": "npm run start",
     "setup-ai": "cd backend && setup_ai.bat",
     "install-ai": "cd backend && pip install -r requirements.txt",
     "test-ai": "cd backend && python test_ai.py"
