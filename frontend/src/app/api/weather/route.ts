@@ -16,7 +16,8 @@ async function getCoordinates(location: string) {
     console.log('Geocoding URL:', geocodingUrl);
     
     const response = await fetch(geocodingUrl, {
-      next: { revalidate: 86400 } // Cache for 24 hours
+      next: { revalidate: 86400 }, // Cache for 24 hours
+      signal: AbortSignal.timeout(10000) // 10 second timeout
     });
     
     if (!response.ok) {
@@ -30,7 +31,13 @@ async function getCoordinates(location: string) {
       throw new Error(`Geocoding API error: ${response.status} - ${errorText}`);
     }
     
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error('JSON parsing error:', jsonError);
+      throw new Error('Invalid response format from geocoding API');
+    }
     
     if (!data.results || data.results.length === 0) {
       throw new Error(`Location "${location}" not found`);
@@ -125,7 +132,8 @@ async function getNASAPowerData(latitude: number, longitude: number, date: strin
     const nasaDate = date.replace(/-/g, '');
     
     const response = await fetch(`${NASA_POWER_BASE_URL}?parameters=T2M_MAX,T2M_MIN,PRECTOT,WS2M,RH2M,ALLSKY_SFC_SW_DWN&community=RE&longitude=${longitude}&latitude=${latitude}&start=${nasaDate}&end=${nasaDate}&format=JSON`, {
-      next: { revalidate: 3600 } // Cache for 1 hour
+      next: { revalidate: 3600 }, // Cache for 1 hour
+      signal: AbortSignal.timeout(15000) // 15 second timeout
     });
     
     if (!response.ok) {
@@ -133,7 +141,12 @@ async function getNASAPowerData(latitude: number, longitude: number, date: strin
       return null;
     }
     
-    return await response.json();
+    try {
+      return await response.json();
+    } catch (jsonError) {
+      console.error('NASA API JSON parsing error:', jsonError);
+      return null; // Return null if JSON parsing fails
+    }
   } catch (error) {
     console.warn('Error fetching NASA POWER data:', error);
     return null;
@@ -155,7 +168,8 @@ async function getWeatherData(latitude: number, longitude: number, date: string)
     });
 
     const response = await fetch(`${OPEN_METEO_BASE_URL}?${params}`, {
-      next: { revalidate: 1800 } // Cache for 30 minutes
+      next: { revalidate: 1800 }, // Cache for 30 minutes
+      signal: AbortSignal.timeout(15000) // 15 second timeout
     });
 
     if (!response.ok) {
@@ -169,7 +183,13 @@ async function getWeatherData(latitude: number, longitude: number, date: string)
       throw new Error(`Weather API error: ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error('JSON parsing error:', jsonError);
+      throw new Error('Invalid response format from weather API');
+    }
     
     // Validate the data structure
     if (!data.daily || !data.daily.temperature_2m_max || data.daily.temperature_2m_max.length === 0) {
@@ -185,7 +205,7 @@ async function getWeatherData(latitude: number, longitude: number, date: string)
       const weatherApiKey = process.env.WEATHER_API_KEY;
       if (weatherApiKey) {
         console.log('Trying WeatherAPI.com as fallback...');
-        const fallbackUrl = `http://api.weatherapi.com/v1/forecast.json?key=${weatherApiKey}&q=${latitude},${longitude}&days=7&aqi=no&alerts=no`;
+        const fallbackUrl = `https://api.weatherapi.com/v1/forecast.json?key=${weatherApiKey}&q=${latitude},${longitude}&days=7&aqi=no&alerts=no`;
         const fallbackResponse = await fetch(fallbackUrl);
         
         if (fallbackResponse.ok) {
@@ -604,64 +624,8 @@ export async function GET(request: NextRequest) {
     
     const comfortIndex = calculateComfortIndex(weather);
 
-    // Generate AI recommendation using backend AI system
-    let aiRecommendation = '';
-    try {
-      // Call the Python AI recommendation script
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { spawn } = require('child_process');
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const path = require('path');
-      const backendPath = path.join(process.cwd(), '..', 'backend');
-      const pythonProcess = spawn('python', ['ai_recommendation.py'], {
-        cwd: backendPath
-      });
-
-      const inputData = {
-        weather_data: weatherData,
-        nasa_data: nasaData,
-        comfort_index: comfortIndex,
-        location: coordinates.name,
-        date: date,
-        event_type: eventType || 'outdoor activity'
-      };
-
-      let output = '';
-      let errorOutput = '';
-
-      pythonProcess.stdout.on('data', (data: Buffer) => {
-        output += data.toString();
-      });
-
-      pythonProcess.stderr.on('data', (data: Buffer) => {
-        errorOutput += data.toString();
-      });
-
-      await new Promise((resolve) => {
-        pythonProcess.on('close', (code: number) => {
-          if (code === 0) {
-            try {
-              const result = JSON.parse(output);
-              aiRecommendation = result.recommendation || generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
-            } catch (parseError) {
-              console.warn('Failed to parse AI recommendation, using fallback:', parseError);
-              aiRecommendation = generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
-            }
-            resolve(true);
-          } else {
-            console.warn('AI recommendation failed, using fallback:', errorOutput);
-            aiRecommendation = generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
-            resolve(true);
-          }
-        });
-
-        pythonProcess.stdin.write(JSON.stringify(inputData));
-        pythonProcess.stdin.end();
-      });
-    } catch (error) {
-      console.warn('AI recommendation error, using fallback:', error);
-      aiRecommendation = generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
-    }
+    // Generate AI recommendation using JavaScript-based system
+    const aiRecommendation = generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
 
     // Get weather description based on weather code
     const getWeatherDescription = (code: number) => {
