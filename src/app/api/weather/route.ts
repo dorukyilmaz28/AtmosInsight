@@ -604,62 +604,8 @@ export async function GET(request: NextRequest) {
     
     const comfortIndex = calculateComfortIndex(weather);
 
-    // Generate AI recommendation using backend AI system
-    let aiRecommendation = '';
-    try {
-      // Call the Python AI recommendation script
-      const { spawn } = require('child_process');
-      const path = require('path');
-      const backendPath = path.join(process.cwd(), '..', 'backend');
-      const pythonProcess = spawn('python', ['ai_recommendation.py'], {
-        cwd: backendPath
-      });
-
-      const inputData = {
-        weather_data: weatherData,
-        nasa_data: nasaData,
-        comfort_index: comfortIndex,
-        location: coordinates.name,
-        date: date,
-        event_type: eventType || 'outdoor activity'
-      };
-
-      let output = '';
-      let errorOutput = '';
-
-      pythonProcess.stdout.on('data', (data: Buffer) => {
-        output += data.toString();
-      });
-
-      pythonProcess.stderr.on('data', (data: Buffer) => {
-        errorOutput += data.toString();
-      });
-
-      await new Promise((resolve, reject) => {
-        pythonProcess.on('close', (code: number) => {
-          if (code === 0) {
-            try {
-              const result = JSON.parse(output);
-              aiRecommendation = result.recommendation || generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
-            } catch (parseError) {
-              console.warn('Failed to parse AI recommendation, using fallback:', parseError);
-              aiRecommendation = generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
-            }
-            resolve(true);
-          } else {
-            console.warn('AI recommendation failed, using fallback:', errorOutput);
-            aiRecommendation = generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
-            resolve(true);
-          }
-        });
-
-        pythonProcess.stdin.write(JSON.stringify(inputData));
-        pythonProcess.stdin.end();
-      });
-    } catch (error) {
-      console.warn('AI recommendation error, using fallback:', error);
-      aiRecommendation = generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
-    }
+    // Generate AI recommendation using JavaScript-based system
+    const aiRecommendation = generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
 
     // Get weather description based on weather code
     const getWeatherDescription = (code: number) => {
