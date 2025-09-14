@@ -124,6 +124,17 @@ const translations = {
     'search_weather_description': 'Herhangi bir şehir için detaylı hava durumu bilgisi',
     'map_description': 'Harita üzerinden konum seçin ve hava durumunu görün',
     
+    // Hero section
+    'hero.title': 'Hava Durumu Asistanı',
+    'hero.subtitle': 'AI destekli hava durumu analizi ve NASA verileri ile açık hava etkinliklerinizi planlayın',
+    'hero.getStarted': 'Başlayın',
+    'hero.viewMap': 'Haritayı Görüntüle',
+    
+    // Tabs
+    'tabs.weather': 'Hava Durumu',
+    'tabs.event': 'Etkinlik',
+    'tabs.map': 'Harita',
+    
     // Weather Conditions
     'clear_sky': 'Açık',
     'few_clouds': 'Az Bulutlu',
@@ -253,6 +264,17 @@ const translations = {
     'plan_events_description': 'Get AI-powered weather recommendations for your events',
     'search_weather_description': 'Detailed weather information for any city',
     'map_description': 'Select locations on map and view weather conditions',
+    
+    // Hero section
+    'hero.title': 'Weather Assistant',
+    'hero.subtitle': 'Plan your outdoor activities with AI-powered weather insights and NASA data analysis',
+    'hero.getStarted': 'Get Started',
+    'hero.viewMap': 'View Map',
+    
+    // Tabs
+    'tabs.weather': 'Weather',
+    'tabs.event': 'Event',
+    'tabs.map': 'Map',
     
     // Weather Conditions
     'clear_sky': 'Clear Sky',

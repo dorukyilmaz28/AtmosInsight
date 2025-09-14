@@ -23,7 +23,6 @@ export default function EventWeatherSearch({ onSearch }: EventWeatherSearchProps
   const [eventType, setEventType] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
-  const [location, setLocation] = useState('');
   const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
   const [district, setDistrict] = useState('');
@@ -69,6 +68,18 @@ export default function EventWeatherSearch({ onSearch }: EventWeatherSearchProps
       if (!data.results || data.results.length === 0) {
         response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(fullLocation)}&count=1&format=json`);
         data = await response.json();
+      }
+      
+      // Try with just city and country (without district)
+      if (!data.results || data.results.length === 0) {
+        const cityCountryLocation = `${city}, ${country}`;
+        response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityCountryLocation)}&count=1&language=tr&format=json`);
+        data = await response.json();
+        
+        if (!data.results || data.results.length === 0) {
+          response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityCountryLocation)}&count=1&language=en&format=json`);
+          data = await response.json();
+        }
       }
       
       if (data.results && data.results.length > 0) {

@@ -7,11 +7,29 @@ const OPEN_METEO_BASE_URL = 'https://api.open-meteo.com/v1/forecast';
 const NASA_POWER_BASE_URL = 'https://power.larc.nasa.gov/api/temporal/daily/point';
 
 /**
- * Get coordinates for a location using Open-Meteo geocoding
+ * Get coordinates for a location with multiple fallback sources
  */
 async function getCoordinates(location: string) {
   try {
-    const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`);
+    // Primary: Open-Meteo Geocoding API
+    const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
+    console.log('Geocoding URL:', geocodingUrl);
+    
+    const response = await fetch(geocodingUrl, {
+      next: { revalidate: 86400 } // Cache for 24 hours
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Geocoding API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: geocodingUrl,
+        error: errorText
+      });
+      throw new Error(`Geocoding API error: ${response.status} - ${errorText}`);
+    }
+    
     const data = await response.json();
     
     if (!data.results || data.results.length === 0) {
@@ -19,13 +37,81 @@ async function getCoordinates(location: string) {
     }
     
     const result = data.results[0];
+    
+    // Validate coordinates
+    if (typeof result.latitude !== 'number' || typeof result.longitude !== 'number') {
+      throw new Error('Invalid coordinates received');
+    }
+    
     return {
       latitude: result.latitude,
       longitude: result.longitude,
-      name: result.name,
-      country: result.country
+      name: result.name || location,
+      country: result.country || 'Unknown'
     };
   } catch (error) {
+    console.error('Primary Geocoding Error:', error);
+    
+    // Fallback: Try with different search terms
+    try {
+      const parts = location.split(',').map(p => p.trim());
+      const cityOnly = parts[0];
+      const countryOnly = parts[parts.length - 1];
+      
+      if (cityOnly !== location) {
+        console.log(`Trying geocoding with city only: ${cityOnly}`);
+        const cityResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityOnly)}&count=1&language=en&format=json`);
+        const cityData = await cityResponse.json();
+        
+        if (cityData.results && cityData.results.length > 0) {
+          const result = cityData.results[0];
+          return {
+            latitude: result.latitude,
+            longitude: result.longitude,
+            name: result.name,
+            country: result.country
+          };
+        }
+      }
+      
+      // Try with country only if city fails
+      if (countryOnly && countryOnly !== cityOnly) {
+        console.log(`Trying geocoding with country only: ${countryOnly}`);
+        const countryResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(countryOnly)}&count=1&language=en&format=json`);
+        const countryData = await countryResponse.json();
+        
+        if (countryData.results && countryData.results.length > 0) {
+          const result = countryData.results[0];
+          return {
+            latitude: result.latitude,
+            longitude: result.longitude,
+            name: result.name,
+            country: result.country
+          };
+        }
+      }
+      
+      // Try with Turkish language for Turkish locations
+      if (location.toLowerCase().includes('türkiye') || location.toLowerCase().includes('turkey')) {
+        console.log(`Trying geocoding with Turkish language: ${location}`);
+        const turkishResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=tr&format=json`);
+        const turkishData = await turkishResponse.json();
+        
+        if (turkishData.results && turkishData.results.length > 0) {
+          const result = turkishData.results[0];
+          return {
+            latitude: result.latitude,
+            longitude: result.longitude,
+            name: result.name,
+            country: result.country
+          };
+        }
+      }
+      
+    } catch (fallbackError) {
+      console.error('Fallback geocoding error:', fallbackError);
+    }
+    
     throw new Error(`Error getting coordinates for "${location}": ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -55,7 +141,7 @@ async function getNASAPowerData(latitude: number, longitude: number, date: strin
 }
 
 /**
- * Get weather data from Open-Meteo API
+ * Get weather data from Open-Meteo API with fallback
  */
 async function getWeatherData(latitude: number, longitude: number, date: string) {
   try {
@@ -73,13 +159,173 @@ async function getWeatherData(latitude: number, longitude: number, date: string)
     });
 
     if (!response.ok) {
-      throw new Error('Weather data API request failed');
+      const errorText = await response.text();
+      console.error('Open-Meteo API Error Details:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: `${OPEN_METEO_BASE_URL}?${params}`,
+        error: errorText
+      });
+      throw new Error(`Weather API error: ${response.status} - ${errorText}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    
+    // Validate the data structure
+    if (!data.daily || !data.daily.temperature_2m_max || data.daily.temperature_2m_max.length === 0) {
+      throw new Error('Invalid weather data structure from Open-Meteo');
+    }
+    
+    return data;
   } catch (error) {
+    console.error('Primary Weather API Error:', error);
+    
+    // Fallback to secondary API (WeatherAPI.com if API key is available)
+    try {
+      const weatherApiKey = process.env.WEATHER_API_KEY;
+      if (weatherApiKey) {
+        console.log('Trying WeatherAPI.com as fallback...');
+        const fallbackUrl = `http://api.weatherapi.com/v1/forecast.json?key=${weatherApiKey}&q=${latitude},${longitude}&days=7&aqi=no&alerts=no`;
+        const fallbackResponse = await fetch(fallbackUrl);
+        
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          return convertWeatherApiData(fallbackData, date);
+        }
+      }
+    } catch (fallbackError) {
+      console.error('Fallback API Error:', fallbackError);
+    }
+    
     throw new Error(`Error fetching weather data: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+// Type definitions for WeatherAPI.com response
+interface WeatherApiForecastDay {
+  date: string;
+  day: {
+    maxtemp_c: number;
+    mintemp_c: number;
+    avgtemp_c: number;
+    maxwind_kph: number;
+    totalprecip_mm: number;
+    avgvis_km: number;
+    avghumidity: number;
+    uv: number;
+    avgpressure_mb: number;
+    condition: {
+      text: string;
+      code: number;
+    };
+  };
+  astro: {
+    sunrise: string;
+    sunset: string;
+    moonrise: string;
+    moonset: string;
+    moon_phase: string;
+    moon_illumination: string;
+  };
+}
+
+interface WeatherApiResponse {
+  forecast?: {
+    forecastday?: WeatherApiForecastDay[];
+  };
+}
+
+/**
+ * Convert WeatherAPI.com data format to our expected format
+ */
+function convertWeatherApiData(data: WeatherApiResponse, date: string) {
+  const targetDate = new Date(date);
+  const forecastDay = data.forecast?.forecastday?.find((day: WeatherApiForecastDay) => {
+    const dayDate = new Date(day.date);
+    return dayDate.toDateString() === targetDate.toDateString();
+  });
+
+  if (!forecastDay) {
+    throw new Error('No forecast data available for the requested date');
+  }
+
+  const dayData = forecastDay.day;
+  const astroData = forecastDay.astro;
+
+  return {
+    daily: {
+      temperature_2m_max: [dayData.maxtemp_c],
+      temperature_2m_min: [dayData.mintemp_c],
+      precipitation_sum: [dayData.totalprecip_mm || 0],
+      windspeed_10m_max: [dayData.maxwind_kph / 3.6], // Convert km/h to m/s
+      winddirection_10m_dominant: [dayData.avgvis_km * 1000], // Placeholder
+      relative_humidity_2m_max: [dayData.avghumidity],
+      weathercode: [getWeatherCodeFromCondition(dayData.condition.code)],
+      uv_index_max: [dayData.uv],
+      sunset: [astroData.sunset],
+      sunrise: [astroData.sunrise],
+      pressure_msl: [dayData.avgpressure_mb]
+    }
+  };
+}
+
+/**
+ * Convert WeatherAPI condition codes to Open-Meteo weather codes
+ */
+function getWeatherCodeFromCondition(conditionCode: number): number {
+  // WeatherAPI condition codes to Open-Meteo weather codes mapping
+  const codeMap: { [key: number]: number } = {
+    1000: 0,  // Clear sky
+    1003: 2,  // Partly cloudy
+    1006: 3,  // Cloudy
+    1009: 3,  // Overcast
+    1030: 45, // Mist
+    1063: 61, // Patchy rain possible
+    1066: 71, // Patchy snow possible
+    1069: 67, // Patchy sleet possible
+    1072: 56, // Patchy freezing drizzle possible
+    1087: 95, // Thundery outbreaks possible
+    1114: 71, // Blowing snow
+    1117: 75, // Blizzard
+    1135: 45, // Fog
+    1147: 48, // Freezing fog
+    1150: 51, // Patchy light drizzle
+    1153: 51, // Light drizzle
+    1168: 56, // Freezing drizzle
+    1171: 56, // Heavy freezing drizzle
+    1180: 61, // Patchy light rain
+    1183: 61, // Light rain
+    1186: 61, // Moderate rain at times
+    1189: 63, // Moderate rain
+    1192: 65, // Heavy rain at times
+    1195: 65, // Heavy rain
+    1198: 66, // Light freezing rain
+    1201: 66, // Moderate or heavy freezing rain
+    1204: 67, // Light sleet
+    1207: 67, // Moderate or heavy sleet
+    1210: 71, // Patchy light snow
+    1213: 71, // Light snow
+    1216: 73, // Patchy moderate snow
+    1219: 73, // Moderate snow
+    1222: 75, // Patchy heavy snow
+    1225: 75, // Heavy snow
+    1237: 77, // Ice pellets
+    1240: 80, // Light rain shower
+    1243: 81, // Moderate or heavy rain shower
+    1246: 82, // Torrential rain shower
+    1249: 67, // Light sleet showers
+    1252: 67, // Moderate or heavy sleet showers
+    1255: 85, // Light snow showers
+    1258: 86, // Moderate or heavy snow showers
+    1261: 77, // Light showers of ice pellets
+    1264: 77, // Moderate or heavy showers of ice pellets
+    1273: 95, // Patchy light rain with thunder
+    1276: 96, // Moderate or heavy rain with thunder
+    1279: 96, // Patchy light snow with thunder
+    1282: 99, // Moderate or heavy snow with thunder
+  };
+  
+  return codeMap[conditionCode] || 0;
 }
 
 /**
@@ -92,27 +338,77 @@ function calculateComfortIndex(weather: {
   humidity: number;
 }) {
   let score = 100;
+  const issues: string[] = [];
   
   // Temperature factor (optimal range: 18-25°C)
   const avgTemp = (weather.temperature.max + weather.temperature.min) / 2;
-  if (avgTemp < 5 || avgTemp > 35) score -= 30;
-  else if (avgTemp < 10 || avgTemp > 30) score -= 20;
-  else if (avgTemp < 15 || avgTemp > 25) score -= 10;
+  if (avgTemp < 5 || avgTemp > 35) {
+    score -= 30;
+    issues.push(avgTemp < 5 ? 'Aşırı soğuk' : 'Aşırı sıcak');
+  } else if (avgTemp < 10 || avgTemp > 30) {
+    score -= 20;
+    issues.push(avgTemp < 10 ? 'Soğuk' : 'Sıcak');
+  } else if (avgTemp < 15 || avgTemp > 25) {
+    score -= 10;
+    issues.push(avgTemp < 15 ? 'Serin' : 'Ilık');
+  }
   
   // Precipitation factor
-  if (weather.precipitation > 10) score -= 25;
-  else if (weather.precipitation > 5) score -= 15;
-  else if (weather.precipitation > 1) score -= 10;
+  if (weather.precipitation > 10) {
+    score -= 25;
+    issues.push('Yoğun yağış');
+  } else if (weather.precipitation > 5) {
+    score -= 15;
+    issues.push('Orta yağış');
+  } else if (weather.precipitation > 1) {
+    score -= 10;
+    issues.push('Hafif yağış');
+  }
   
   // Wind factor
-  if (weather.windSpeed > 25) score -= 20;
-  else if (weather.windSpeed > 15) score -= 10;
+  if (weather.windSpeed > 25) {
+    score -= 20;
+    issues.push('Güçlü rüzgar');
+  } else if (weather.windSpeed > 15) {
+    score -= 10;
+    issues.push('Orta rüzgar');
+  }
   
   // Humidity factor (optimal range: 40-70%)
-  if (weather.humidity > 80 || weather.humidity < 30) score -= 15;
-  else if (weather.humidity > 70 || weather.humidity < 40) score -= 10;
+  if (weather.humidity > 80 || weather.humidity < 30) {
+    score -= 15;
+    issues.push(weather.humidity > 80 ? 'Yüksek nem' : 'Düşük nem');
+  } else if (weather.humidity > 70 || weather.humidity < 40) {
+    score -= 10;
+    issues.push(weather.humidity > 70 ? 'Nemli' : 'Kuru');
+  }
   
-  return Math.max(0, Math.min(100, score));
+  const finalScore = Math.max(0, Math.min(100, score));
+  
+  // Determine comfort level and color
+  let level: string;
+  let color: string;
+  
+  if (finalScore >= 80) {
+    level = 'Mükemmel';
+    color = 'green';
+  } else if (finalScore >= 60) {
+    level = 'İyi';
+    color = 'green';
+  } else if (finalScore >= 40) {
+    level = 'Orta';
+    color = 'yellow';
+  } else {
+    level = 'Zorlu';
+    color = 'red';
+  }
+  
+  return {
+    score: finalScore,
+    level,
+    issues,
+    color
+  };
 }
 
 /**
@@ -136,13 +432,13 @@ function generateAIRecommendation(weather: {
   }
   
   // Comfort level analysis
-  if (comfortIndex >= 85) {
+  if (comfortIndex.score >= 85) {
     recommendation += `✨ Excellent weather conditions! Perfect for outdoor activities and events.`;
-  } else if (comfortIndex >= 70) {
+  } else if (comfortIndex.score >= 70) {
     recommendation += `👍 Great weather! Ideal conditions for most outdoor activities.`;
-  } else if (comfortIndex >= 55) {
+  } else if (comfortIndex.score >= 55) {
     recommendation += `⚠️ Moderate weather conditions. Some activities may require extra preparation.`;
-  } else if (comfortIndex >= 40) {
+  } else if (comfortIndex.score >= 40) {
     recommendation += `⚠️ Challenging weather conditions. Consider indoor alternatives.`;
   } else {
     recommendation += `❌ Difficult weather conditions. Outdoor activities not recommended.`;
@@ -241,11 +537,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validate date format
+    // Validate location format (basic check)
+    if (location.length < 2 || location.length > 100) {
+      return NextResponse.json(
+        { error: 'Location must be between 2 and 100 characters' },
+        { status: 400 }
+      );
+    }
+
+    // Validate date format and range
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(date)) {
       return NextResponse.json(
         { error: 'Date format must be YYYY-MM-DD' },
+        { status: 400 }
+      );
+    }
+
+    const requestDate = new Date(date + 'T00:00:00.000Z'); // Ensure UTC
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0); // Reset time to start of day UTC
+    const maxDate = new Date();
+    maxDate.setUTCDate(today.getUTCDate() + 16); // 16 days in the future
+
+    console.log('Date validation:', {
+      requestDate: requestDate.toISOString(),
+      today: today.toISOString(),
+      maxDate: maxDate.toISOString(),
+      isValid: requestDate >= today && requestDate <= maxDate
+    });
+
+    if (requestDate < today || requestDate > maxDate) {
+      return NextResponse.json(
+        { error: `Date must be between ${today.toISOString().split('T')[0]} and ${maxDate.toISOString().split('T')[0]}` },
         { status: 400 }
       );
     }
@@ -280,8 +604,62 @@ export async function GET(request: NextRequest) {
     
     const comfortIndex = calculateComfortIndex(weather);
 
-    // Generate AI recommendation
-    const aiRecommendation = generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
+    // Generate AI recommendation using backend AI system
+    let aiRecommendation = '';
+    try {
+      // Call the Python AI recommendation script
+      const { spawn } = require('child_process');
+      const path = require('path');
+      const backendPath = path.join(process.cwd(), '..', 'backend');
+      const pythonProcess = spawn('python', ['ai_recommendation.py'], {
+        cwd: backendPath
+      });
+
+      const inputData = {
+        weather_data: weatherData,
+        nasa_data: nasaData,
+        comfort_index: comfortIndex,
+        location: coordinates.name,
+        date: date,
+        event_type: eventType || 'outdoor activity'
+      };
+
+      let output = '';
+      let errorOutput = '';
+
+      pythonProcess.stdout.on('data', (data: Buffer) => {
+        output += data.toString();
+      });
+
+      pythonProcess.stderr.on('data', (data: Buffer) => {
+        errorOutput += data.toString();
+      });
+
+      await new Promise((resolve, reject) => {
+        pythonProcess.on('close', (code: number) => {
+          if (code === 0) {
+            try {
+              const result = JSON.parse(output);
+              aiRecommendation = result.recommendation || generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
+            } catch (parseError) {
+              console.warn('Failed to parse AI recommendation, using fallback:', parseError);
+              aiRecommendation = generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
+            }
+            resolve(true);
+          } else {
+            console.warn('AI recommendation failed, using fallback:', errorOutput);
+            aiRecommendation = generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
+            resolve(true);
+          }
+        });
+
+        pythonProcess.stdin.write(JSON.stringify(inputData));
+        pythonProcess.stdin.end();
+      });
+    } catch (error) {
+      console.warn('AI recommendation error, using fallback:', error);
+      aiRecommendation = generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
+    }
 
     // Get weather description based on weather code
     const getWeatherDescription = (code: number) => {
@@ -357,7 +735,7 @@ export async function GET(request: NextRequest) {
         sunset: weatherData.daily.sunset[0],
         sunrise: weatherData.daily.sunrise[0],
         visibility: 10, // Default visibility
-        pressure: 1013 // Default pressure
+        pressure: 1013.25 // Default pressure in hPa
       },
       comfortIndex,
       nasaData: nasaData && nasaData.properties && nasaData.properties.parameter ? {
@@ -377,9 +755,40 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('Weather API Error:', error);
+    
+    // Return specific error messages based on error type
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        return NextResponse.json(
+          { error: 'Location not found. Please check the spelling and try again.' },
+          { status: 404 }
+        );
+      }
+      
+      if (error.message.includes('Invalid weather data')) {
+        return NextResponse.json(
+          { error: 'Weather data temporarily unavailable. Please try again later.' },
+          { status: 503 }
+        );
+      }
+      
+      if (error.message.includes('API error')) {
+        return NextResponse.json(
+          { error: 'Weather service temporarily unavailable. Please try again in a few minutes.' },
+          { status: 503 }
+        );
+      }
+      
+      // Return the original error message for debugging
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Sunucu hatası' },
+      { error: 'Unable to fetch weather data. Please try again later.' },
       { status: 500 }
     );
   }
