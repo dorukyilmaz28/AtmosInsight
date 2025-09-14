@@ -103,7 +103,10 @@ const AIRecommendation: React.FC<AIRecommendationProps> = ({ recommendation }) =
       } else if (trimmed.includes('**KONUM BİLGİSİ:**')) {
         currentSection = 'locationInfo';
       } else if (trimmed && currentSection && trimmed.startsWith('•')) {
-        sections[currentSection as keyof typeof sections].push(trimmed.substring(1).trim());
+        const section = sections[currentSection as keyof typeof sections];
+        if (Array.isArray(section)) {
+          section.push(trimmed.substring(1).trim());
+        }
       } else if (trimmed && currentSection === 'suitability' && !trimmed.includes('**')) {
         sections.suitabilityScore = trimmed;
       }

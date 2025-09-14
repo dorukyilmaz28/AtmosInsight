@@ -157,8 +157,6 @@ const WeatherMap: React.FC<WeatherMapProps> = ({ locations, onLocationSelect }) 
                           : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                       }`}
                       onClick={() => setSelectedLocation(location)}
-                      onMouseEnter={() => setHoveredLocation(location)}
-                      onMouseLeave={() => setHoveredLocation(null)}
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div>

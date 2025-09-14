@@ -608,8 +608,10 @@ export async function GET(request: NextRequest) {
     let aiRecommendation = '';
     try {
       // Call the Python AI recommendation script
-      const { spawn } = await import('child_process');
-      const path = await import('path');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { spawn } = require('child_process');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const path = require('path');
       const backendPath = path.join(process.cwd(), '..', 'backend');
       const pythonProcess = spawn('python', ['ai_recommendation.py'], {
         cwd: backendPath
