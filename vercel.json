@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "src/app/api/weather/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "WEATHER_API_KEY": "@weather_api_key"
+  }
+}

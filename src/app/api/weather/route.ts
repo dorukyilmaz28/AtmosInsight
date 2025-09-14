@@ -16,7 +16,8 @@ async function getCoordinates(location: string) {
     console.log('Geocoding URL:', geocodingUrl);
     
     const response = await fetch(geocodingUrl, {
-      next: { revalidate: 86400 } // Cache for 24 hours
+      next: { revalidate: 86400 }, // Cache for 24 hours
+      signal: AbortSignal.timeout(10000) // 10 second timeout
     });
     
     if (!response.ok) {
@@ -125,7 +126,8 @@ async function getNASAPowerData(latitude: number, longitude: number, date: strin
     const nasaDate = date.replace(/-/g, '');
     
     const response = await fetch(`${NASA_POWER_BASE_URL}?parameters=T2M_MAX,T2M_MIN,PRECTOT,WS2M,RH2M,ALLSKY_SFC_SW_DWN&community=RE&longitude=${longitude}&latitude=${latitude}&start=${nasaDate}&end=${nasaDate}&format=JSON`, {
-      next: { revalidate: 3600 } // Cache for 1 hour
+      next: { revalidate: 3600 }, // Cache for 1 hour
+      signal: AbortSignal.timeout(15000) // 15 second timeout
     });
     
     if (!response.ok) {
@@ -155,7 +157,8 @@ async function getWeatherData(latitude: number, longitude: number, date: string)
     });
 
     const response = await fetch(`${OPEN_METEO_BASE_URL}?${params}`, {
-      next: { revalidate: 1800 } // Cache for 30 minutes
+      next: { revalidate: 1800 }, // Cache for 30 minutes
+      signal: AbortSignal.timeout(15000) // 15 second timeout
     });
 
     if (!response.ok) {
@@ -186,7 +189,9 @@ async function getWeatherData(latitude: number, longitude: number, date: string)
       if (weatherApiKey) {
         console.log('Trying WeatherAPI.com as fallback...');
         const fallbackUrl = `http://api.weatherapi.com/v1/forecast.json?key=${weatherApiKey}&q=${latitude},${longitude}&days=7&aqi=no&alerts=no`;
-        const fallbackResponse = await fetch(fallbackUrl);
+        const fallbackResponse = await fetch(fallbackUrl, {
+          signal: AbortSignal.timeout(10000) // 10 second timeout
+        });
         
         if (fallbackResponse.ok) {
           const fallbackData = await fallbackResponse.json();
