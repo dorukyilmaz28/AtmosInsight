@@ -1,5 +1,5 @@
 {
-  "name": "weather-forecast-app",
+  "name": "atmos-insight",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -25,8 +25,10 @@
     "forecast",
     "ai",
     "react",
-    "express"
+    "express",
+    "nasa",
+    "space-apps"
   ],
-  "author": "Your Name",
+  "author": "Doruk Yılmaz",
   "license": "MIT"
 }
