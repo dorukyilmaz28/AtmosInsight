@@ -62,7 +62,6 @@ export default function EventWeatherResults({ eventData, weatherData }: EventWea
 
     // Detailed Temperature analysis
     const tempRange = temp - tempMin;
-    const avgTemp = (temp + tempMin) / 2;
     
     if (temp < -10) {
       score -= 40;

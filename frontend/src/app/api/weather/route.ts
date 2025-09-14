@@ -608,8 +608,8 @@ export async function GET(request: NextRequest) {
     let aiRecommendation = '';
     try {
       // Call the Python AI recommendation script
-      const { spawn } = require('child_process');
-      const path = require('path');
+      const { spawn } = await import('child_process');
+      const path = await import('path');
       const backendPath = path.join(process.cwd(), '..', 'backend');
       const pythonProcess = spawn('python', ['ai_recommendation.py'], {
         cwd: backendPath
@@ -635,7 +635,7 @@ export async function GET(request: NextRequest) {
         errorOutput += data.toString();
       });
 
-      await new Promise((resolve, reject) => {
+      await new Promise((resolve) => {
         pythonProcess.on('close', (code: number) => {
           if (code === 0) {
             try {

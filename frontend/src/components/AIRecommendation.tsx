@@ -3,8 +3,6 @@
 import React from 'react';
 import { 
   Brain, 
-  Sparkles, 
-  Lightbulb, 
   AlertTriangle, 
   CheckCircle, 
   Clock, 
@@ -13,13 +11,7 @@ import {
   Shield, 
   Heart,
   MapPin,
-  Calendar,
-  Thermometer,
-  Wind,
-  Droplets,
-  Eye,
-  Sun,
-  Zap
+  Thermometer
 } from 'lucide-react';
 
 interface AIRecommendationProps {

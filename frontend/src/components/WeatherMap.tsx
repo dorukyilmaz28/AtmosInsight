@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, Calendar, RefreshCw, Thermometer, Droplets, Wind, Eye, Zap } from 'lucide-react';
+import { MapPin, Calendar, RefreshCw, Droplets, Wind, Eye, Zap } from 'lucide-react';
 import { WeatherData } from '@/types/weather';
 
 interface Location {
@@ -25,7 +25,6 @@ const WeatherMap: React.FC<WeatherMapProps> = ({ locations, onLocationSelect }) 
     return tomorrow.toISOString().split('T')[0];
   });
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-  const [hoveredLocation, setHoveredLocation] = useState<Location | null>(null);
 
   const fetchWeatherForLocations = useCallback(async () => {
     setLoading(true);
