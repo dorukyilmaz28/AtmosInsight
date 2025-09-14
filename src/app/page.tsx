@@ -121,10 +121,19 @@ export default function Home() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700"></div>
-      <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-indigo-800/15 to-purple-700/10"></div>
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.05%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%221.5%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+      {/* Enhanced Background Elements */}
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800"></div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 via-blue-500/15 to-purple-500/20"></div>
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.08%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
+      
+      {/* Floating Particles */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-20 left-20 w-2 h-2 bg-white/20 rounded-full animate-pulse"></div>
+        <div className="absolute top-40 right-32 w-1 h-1 bg-cyan-300/40 rounded-full animate-bounce" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-32 left-40 w-3 h-3 bg-purple-300/30 rounded-full animate-ping" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-60 right-20 w-2 h-2 bg-pink-300/25 rounded-full animate-pulse" style={{ animationDelay: '3s' }}></div>
+        <div className="absolute bottom-20 right-40 w-1 h-1 bg-blue-300/35 rounded-full animate-bounce" style={{ animationDelay: '0.5s' }}></div>
+      </div>
       
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Language Toggle */}
@@ -157,49 +166,75 @@ export default function Home() {
           /* Landing Page */
           <div className="min-h-screen flex items-center justify-center">
             <div className="text-center max-w-4xl mx-auto animate-fadeIn">
-              {/* Main Title */}
+              {/* Enhanced Main Title */}
               <div className="mb-8 md:mb-12">
-                <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-4 md:mb-8 animate-slideUp">
-                  {t('weather_assistant')}
-                </h1>
-                <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white/90 leading-relaxed animate-slideUp px-4" style={{ animationDelay: '0.2s' }}>
+                <div className="relative">
+                  <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-4 md:mb-8 animate-slideUp bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+                    {t('weather_assistant')}
+                  </h1>
+                  <div className="absolute -top-2 -left-2 w-full h-full bg-gradient-to-r from-cyan-400/20 via-blue-500/20 to-purple-600/20 blur-xl animate-pulse"></div>
+                </div>
+                <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white/90 leading-relaxed animate-slideUp px-4 font-light" style={{ animationDelay: '0.2s' }}>
                   {t('subtitle')}
                 </p>
+                <div className="mt-6 animate-fadeIn" style={{ animationDelay: '0.4s' }}>
+                  <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-full px-6 py-3 border border-white/20">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-white/90 text-sm font-medium">Real-time Weather Data</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Features */}
+              {/* Enhanced Features */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12 md:mb-16 animate-scaleIn px-4" style={{ animationDelay: '0.4s' }}>
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-white/10 rounded-full mb-3 md:mb-4 animate-glow">
-                    <Activity className="w-8 h-8 md:w-10 md:h-10 text-white" />
+                <div className="group text-center">
+                  <div className="relative">
+                    <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-full mb-3 md:mb-4 animate-glow backdrop-blur-md border border-cyan-400/30 group-hover:scale-110 transition-transform duration-300">
+                      <Activity className="w-8 h-8 md:w-10 md:h-10 text-cyan-300" />
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-600/10 rounded-full blur-md group-hover:blur-lg transition-all duration-300"></div>
                   </div>
-                  <h3 className="text-lg md:text-xl font-semibold text-white mb-2 md:mb-3">{t('event_planning')}</h3>
-                  <p className="text-sm md:text-base text-white/80">{t('plan_events_description')}</p>
+                  <h3 className="text-lg md:text-xl font-semibold text-white mb-2 md:mb-3 group-hover:text-cyan-300 transition-colors">{t('event_planning')}</h3>
+                  <p className="text-sm md:text-base text-white/80 group-hover:text-white/90 transition-colors">{t('plan_events_description')}</p>
                 </div>
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-white/10 rounded-full mb-3 md:mb-4 animate-glow" style={{ animationDelay: '0.2s' }}>
-                    <Search className="w-8 h-8 md:w-10 md:h-10 text-white" />
+                <div className="group text-center">
+                  <div className="relative">
+                    <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-purple-500/20 to-pink-600/20 rounded-full mb-3 md:mb-4 animate-glow backdrop-blur-md border border-purple-400/30 group-hover:scale-110 transition-transform duration-300" style={{ animationDelay: '0.2s' }}>
+                      <Search className="w-8 h-8 md:w-10 md:h-10 text-purple-300" />
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-600/10 rounded-full blur-md group-hover:blur-lg transition-all duration-300"></div>
                   </div>
-                  <h3 className="text-lg md:text-xl font-semibold text-white mb-2 md:mb-3">{t('weather_search')}</h3>
-                  <p className="text-sm md:text-base text-white/80">{t('search_weather_description')}</p>
+                  <h3 className="text-lg md:text-xl font-semibold text-white mb-2 md:mb-3 group-hover:text-purple-300 transition-colors">{t('weather_search')}</h3>
+                  <p className="text-sm md:text-base text-white/80 group-hover:text-white/90 transition-colors">{t('search_weather_description')}</p>
                 </div>
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-white/10 rounded-full mb-3 md:mb-4 animate-glow" style={{ animationDelay: '0.4s' }}>
-                    <Map className="w-8 h-8 md:w-10 md:h-10 text-white" />
+                <div className="group text-center">
+                  <div className="relative">
+                    <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-full mb-3 md:mb-4 animate-glow backdrop-blur-md border border-green-400/30 group-hover:scale-110 transition-transform duration-300" style={{ animationDelay: '0.4s' }}>
+                      <Map className="w-8 h-8 md:w-10 md:h-10 text-green-300" />
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-emerald-600/10 rounded-full blur-md group-hover:blur-lg transition-all duration-300"></div>
                   </div>
-                  <h3 className="text-lg md:text-xl font-semibold text-white mb-2 md:mb-3">{t('map_view')}</h3>
-                  <p className="text-sm md:text-base text-white/80">{t('map_description')}</p>
+                  <h3 className="text-lg md:text-xl font-semibold text-white mb-2 md:mb-3 group-hover:text-green-300 transition-colors">{t('map_view')}</h3>
+                  <p className="text-sm md:text-base text-white/80 group-hover:text-white/90 transition-colors">{t('map_description')}</p>
                 </div>
               </div>
 
-              {/* CTA Button */}
+              {/* Enhanced CTA Button */}
               <div className="animate-scaleIn px-4" style={{ animationDelay: '0.6s' }}>
-                <button
-                  onClick={() => setShowMainContent(true)}
-                  className="clean-button text-lg md:text-xl px-8 md:px-12 py-3 md:py-4 rounded-2xl font-semibold hover:scale-105 transition-all duration-300 shadow-2xl w-full sm:w-auto"
-                >
-                  {t('get_started')} →
-                </button>
+                <div className="relative inline-block">
+                  <button
+                    onClick={() => setShowMainContent(true)}
+                    className="relative bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 text-white text-lg md:text-xl px-8 md:px-12 py-3 md:py-4 rounded-2xl font-semibold hover:scale-105 transition-all duration-300 shadow-2xl w-full sm:w-auto overflow-hidden group"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <span className="relative z-10 flex items-center gap-2">
+                      {t('get_started')} 
+                      <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
+                    </span>
+                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </button>
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 rounded-2xl blur-md opacity-50 group-hover:opacity-75 transition-opacity duration-300"></div>
+                </div>
               </div>
 
               {/* Additional Info */}

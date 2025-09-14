@@ -130,33 +130,98 @@ function generateAIRecommendation(weather: {
   let recommendation = '';
   
   if (eventType) {
-    recommendation += `🎯 ${eventType} için ${location} hava durumu analizi:\n\n`;
-  }
-  
-  if (comfortIndex >= 80) {
-    recommendation += `✨ Mükemmel hava! Dışarıda vakit geçirmek için ideal koşullar.`;
-  } else if (comfortIndex >= 60) {
-    recommendation += `👍 İyi hava koşulları. Dışarıda aktiviteler yapabilirsiniz.`;
-  } else if (comfortIndex >= 40) {
-    recommendation += `⚠️ Hava koşulları orta. Dikkatli olmanız gerekebilir.`;
+    recommendation += `🎯 ${eventType} Event Weather Analysis for ${location}:\n\n`;
   } else {
-    recommendation += `❌ Zorlu hava koşulları. Dışarıda dikkatli olun.`;
+    recommendation += `🌤️ Weather Forecast for ${location} on ${date}:\n\n`;
   }
   
-  if (weather.precipitation > 5) {
-    recommendation += `\n🌧️ Şiddetli yağış bekleniyor. Şemsiye almayı unutmayın.`;
+  // Comfort level analysis
+  if (comfortIndex >= 85) {
+    recommendation += `✨ Excellent weather conditions! Perfect for outdoor activities and events.`;
+  } else if (comfortIndex >= 70) {
+    recommendation += `👍 Great weather! Ideal conditions for most outdoor activities.`;
+  } else if (comfortIndex >= 55) {
+    recommendation += `⚠️ Moderate weather conditions. Some activities may require extra preparation.`;
+  } else if (comfortIndex >= 40) {
+    recommendation += `⚠️ Challenging weather conditions. Consider indoor alternatives.`;
+  } else {
+    recommendation += `❌ Difficult weather conditions. Outdoor activities not recommended.`;
+  }
+  
+  // Detailed recommendations
+  recommendation += `\n\n📊 Detailed Analysis:`;
+  
+  // Temperature recommendations
+  if (temp > 35) {
+    recommendation += `\n🌡️ Very hot conditions (${temp.toFixed(1)}°C). Stay hydrated, seek shade, and avoid prolonged sun exposure.`;
+  } else if (temp > 30) {
+    recommendation += `\n☀️ Warm weather (${temp.toFixed(1)}°C). Perfect for beach activities, but stay hydrated.`;
+  } else if (temp > 20) {
+    recommendation += `\n😊 Pleasant temperature (${temp.toFixed(1)}°C). Ideal for most outdoor activities.`;
+  } else if (temp > 10) {
+    recommendation += `\n🧥 Cool weather (${temp.toFixed(1)}°C). Dress in layers for comfort.`;
+  } else {
+    recommendation += `\n🥶 Cold conditions (${temp.toFixed(1)}°C). Bundle up and limit outdoor time.`;
+  }
+  
+  // Precipitation recommendations
+  if (weather.precipitation > 10) {
+    recommendation += `\n🌧️ Heavy rain expected (${weather.precipitation}mm). Indoor activities strongly recommended.`;
+  } else if (weather.precipitation > 5) {
+    recommendation += `\n🌦️ Significant rainfall (${weather.precipitation}mm). Bring waterproof gear.`;
   } else if (weather.precipitation > 1) {
-    recommendation += `\n🌦️ Hafif yağış olabilir. Hazırlıklı olun.`;
+    recommendation += `\n🌧️ Light rain possible (${weather.precipitation}mm). Have an umbrella ready.`;
+  } else if (weather.precipitation > 0) {
+    recommendation += `\n🌤️ Minimal precipitation (${weather.precipitation}mm). Generally dry conditions.`;
+  } else {
+    recommendation += `\n☀️ No precipitation expected. Perfect for outdoor activities.`;
   }
   
-  if (weather.windSpeed > 20) {
-    recommendation += `\n💨 Güçlü rüzgar var. Dikkatli olun.`;
+  // Wind recommendations
+  if (weather.windSpeed > 25) {
+    recommendation += `\n💨 Strong winds (${weather.windSpeed} km/h). Avoid outdoor activities and secure loose objects.`;
+  } else if (weather.windSpeed > 15) {
+    recommendation += `\n🌬️ Moderate winds (${weather.windSpeed} km/h). Good for wind sports, but be cautious.`;
+  } else if (weather.windSpeed > 5) {
+    recommendation += `\n🍃 Light breeze (${weather.windSpeed} km/h). Pleasant for most activities.`;
+  } else {
+    recommendation += `\n🌫️ Calm conditions (${weather.windSpeed} km/h). No wind concerns.`;
   }
   
-  if (temp > 30) {
-    recommendation += `\n☀️ Sıcak hava. Bol su içmeyi unutmayın.`;
-  } else if (temp < 5) {
-    recommendation += `\n🧥 Soğuk hava. Sıcak giysiler giyin.`;
+  // Humidity recommendations
+  if (weather.humidity > 80) {
+    recommendation += `\n💧 High humidity (${weather.humidity}%). Can feel muggy and uncomfortable.`;
+  } else if (weather.humidity > 60) {
+    recommendation += `\n💧 Moderate humidity (${weather.humidity}%). Generally comfortable conditions.`;
+  } else if (weather.humidity < 30) {
+    recommendation += `\n🏜️ Low humidity (${weather.humidity}%). Dry conditions - stay hydrated.`;
+  } else {
+    recommendation += `\n💧 Normal humidity (${weather.humidity}%). Comfortable conditions.`;
+  }
+  
+  // Event-specific recommendations
+  if (eventType) {
+    recommendation += `\n\n🎉 Event-Specific Tips:`;
+    
+    switch (eventType.toLowerCase()) {
+      case 'wedding':
+        recommendation += `\n💒 For your special day, consider indoor backup plans if rain is expected.`;
+        break;
+      case 'outdoor party':
+        recommendation += `\n🎊 Perfect for outdoor celebrations! Consider tents for shade or rain protection.`;
+        break;
+      case 'sports event':
+        recommendation += `\n⚽ Great conditions for sports! Ensure proper hydration and sun protection.`;
+        break;
+      case 'picnic':
+        recommendation += `\n🧺 Ideal picnic weather! Don't forget sunscreen and plenty of water.`;
+        break;
+      case 'hiking':
+        recommendation += `\n🥾 Excellent hiking conditions! Check trail conditions and bring appropriate gear.`;
+        break;
+      default:
+        recommendation += `\n🎯 Weather conditions are suitable for your ${eventType.toLowerCase()} event.`;
+    }
   }
   
   return recommendation;
@@ -218,6 +283,53 @@ export async function GET(request: NextRequest) {
     // Generate AI recommendation
     const aiRecommendation = generateAIRecommendation(weather, coordinates.name, date, eventType || undefined);
 
+    // Get weather description based on weather code
+    const getWeatherDescription = (code: number) => {
+      const weatherCodes: { [key: number]: string } = {
+        0: "Clear sky",
+        1: "Mainly clear",
+        2: "Partly cloudy",
+        3: "Overcast",
+        45: "Fog",
+        48: "Depositing rime fog",
+        51: "Light drizzle",
+        53: "Moderate drizzle",
+        55: "Dense drizzle",
+        56: "Light freezing drizzle",
+        57: "Dense freezing drizzle",
+        61: "Slight rain",
+        63: "Moderate rain",
+        65: "Heavy rain",
+        66: "Light freezing rain",
+        67: "Heavy freezing rain",
+        71: "Slight snow fall",
+        73: "Moderate snow fall",
+        75: "Heavy snow fall",
+        77: "Snow grains",
+        80: "Slight rain showers",
+        81: "Moderate rain showers",
+        82: "Violent rain showers",
+        85: "Slight snow showers",
+        86: "Heavy snow showers",
+        95: "Thunderstorm",
+        96: "Thunderstorm with slight hail",
+        99: "Thunderstorm with heavy hail"
+      };
+      return weatherCodes[code] || "Unknown";
+    };
+
+    // Get weather icon based on weather code
+    const getWeatherIcon = (code: number) => {
+      if (code === 0 || code === 1) return "☀️";
+      if (code === 2 || code === 3) return "⛅";
+      if (code >= 45 && code <= 48) return "🌫️";
+      if (code >= 51 && code <= 67) return "🌧️";
+      if (code >= 71 && code <= 86) return "❄️";
+      if (code >= 80 && code <= 82) return "🌦️";
+      if (code >= 95 && code <= 99) return "⛈️";
+      return "🌤️";
+    };
+
     // Format response
     const response = {
       location: {
@@ -239,6 +351,8 @@ export async function GET(request: NextRequest) {
         windDirection: weatherData.daily.winddirection_10m_dominant[0],
         humidity: weatherData.daily.relative_humidity_2m_max[0],
         weatherCode: weatherData.daily.weathercode[0],
+        weatherDescription: getWeatherDescription(weatherData.daily.weathercode[0]),
+        weatherIcon: getWeatherIcon(weatherData.daily.weathercode[0]),
         uvIndex: weatherData.daily.uv_index_max[0],
         sunset: weatherData.daily.sunset[0],
         sunrise: weatherData.daily.sunrise[0],
