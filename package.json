@@ -1,30 +1,34 @@
 {
-  "name": "frontend",
+  "name": "atmos-insight",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon backend/server.js",
+    "client": "cd frontend && npm run dev",
+    "build": "cd frontend && npm install && npm run build",
+    "start": "cd frontend && npm run start",
+    "setup-ai": "cd backend && setup_ai.bat",
+    "install-ai": "cd backend && pip install -r requirements.txt",
+    "test-ai": "cd backend && python test_ai.py"
   },
   "dependencies": {
-    "axios": "^1.6.0",
-    "leaflet": "^1.9.4",
-    "lucide-react": "^0.544.0",
-    "next": "15.5.3",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-leaflet": "^4.2.1",
-    "tailwindcss": "^3.3.3"
+    "axios": "^1.12.1",
+    "concurrently": "^8.2.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "nodemon": "^3.0.1"
   },
-  "devDependencies": {
-    "@types/leaflet": "^1.9.20",
-    "@types/node": "24.3.3",
-    "@types/react": "19.1.13",
-    "autoprefixer": "^10.4.21",
-    "eslint": "^9",
-    "eslint-config-next": "15.5.3",
-    "postcss": "^8.4.31"
-  }
+  "keywords": [
+    "weather",
+    "forecast",
+    "ai",
+    "react",
+    "express",
+    "nasa",
+    "space-apps"
+  ],
+  "author": "Doruk Yılmaz",
+  "license": "MIT"
 }
