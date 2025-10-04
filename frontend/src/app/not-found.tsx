@@ -21,10 +21,10 @@ export default function NotFound() {
 
         {/* Error Message */}
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-          Sayfa Bulunamadı
+          Page Not Found
         </h1>
         <p className="text-xl text-white/80 mb-8 leading-relaxed">
-          Aradığınız sayfa mevcut değil veya taşınmış olabilir.
+          The page you're looking for doesn't exist or may have been moved.
         </p>
 
         {/* Action Buttons */}
@@ -34,7 +34,7 @@ export default function NotFound() {
             className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold hover:from-cyan-400 hover:to-blue-500 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             <Home className="w-5 h-5 mr-2" />
-            Ana Sayfaya Dön
+            Back to Home
           </Link>
           
           <button
@@ -42,7 +42,7 @@ export default function NotFound() {
             className="inline-flex items-center px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-all duration-300 backdrop-blur-md border border-white/20"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
-            Geri Git
+            Go Back
           </button>
           
           <button
@@ -50,19 +50,19 @@ export default function NotFound() {
             className="inline-flex items-center px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-all duration-300 backdrop-blur-md border border-white/20"
           >
             <RefreshCw className="w-5 h-5 mr-2" />
-            Yenile
+            Refresh
           </button>
         </div>
 
         {/* Additional Help */}
         <div className="mt-12 p-6 bg-white/5 rounded-2xl backdrop-blur-md border border-white/10">
           <h3 className="text-lg font-semibold text-white mb-3">
-            Yardıma mı ihtiyacınız var?
+            Need Help?
           </h3>
           <div className="text-white/70 space-y-2">
-            <p>• URL&apos;yi kontrol edin ve tekrar deneyin</p>
-            <p>• Ana sayfadan istediğiniz bölüme gidin</p>
-            <p>• Sayfayı yenileyin veya tarayıcı önbelleğini temizleyin</p>
+            <p>• Check the URL and try again</p>
+            <p>• Navigate from the home page to your desired section</p>
+            <p>• Refresh the page or clear your browser cache</p>
           </div>
         </div>
 
