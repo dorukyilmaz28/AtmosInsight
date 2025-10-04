@@ -1,72 +1,60 @@
 'use client';
 
 import { useState } from 'react';
-import WeatherSearch from '@/components/WeatherSearch';
-import WeatherResults from '@/components/WeatherResults';
-import EventWeatherSearch, { EventData } from '@/components/EventWeatherSearch';
-import EventWeatherResults from '@/components/EventWeatherResults';
-import WeatherMap from '@/components/WeatherMap';
+import { motion, AnimatePresence } from 'framer-motion';
+import Header from '@/components/Header';
+import EnhancedWeatherSearch from '@/components/EnhancedWeatherSearch';
+import AIRecommendationCard from '@/components/AIRecommendationCard';               
+import HourlyWeatherChart from '@/components/HourlyWeatherChart';
+import MultiDayWeatherChart from '@/components/MultiDayWeatherChart';
+import AIActivityAssessment from '@/components/AIActivityAssessment';
+import AdvancedNASAData from '@/components/AdvancedNASAData';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import DecisionBar from '@/components/DecisionBar';
 import { WeatherData } from '@/types/weather';
-import { Map, Search, Activity } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+
+interface EventData {
+  location: string;
+  country: string;
+  district: string;
+  date: string;
+  endDate?: string;
+  eventType: string;
+  thresholds?: {
+    veryHot: number;
+    veryCold: number;
+    veryWindy: number;
+    veryWet: number;
+    veryUncomfortable: number;
+  };
+}
+
+interface WeatherRisk {
+  type: 'hot' | 'cold' | 'windy' | 'wet' | 'uncomfortable';
+  probability: number;
+  severity: 'low' | 'medium' | 'high';
+  description: string;
+}
+
+interface AIRecommendation {
+  recommendation: string;
+  confidence: number;
+  risks: WeatherRisk[];
+  alternativeDays?: string[];
+  summary: string;
+  decisionScore: number;
+}
 
 export default function Home() {
   const { t, language, setLanguage } = useLanguage();
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [eventData, setEventData] = useState<EventData | null>(null);
+  const [aiRecommendation, setAiRecommendation] = useState<AIRecommendation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'search' | 'event' | 'map'>('event');
   const [showMainContent, setShowMainContent] = useState(false);
 
-  // Predefined locations for the map - Global popular cities
-  const mapLocations = [
-    // Europe
-    { name: 'İstanbul', lat: 41.0082, lng: 28.9784, country: 'Türkiye' },
-    { name: 'London', lat: 51.5074, lng: -0.1278, country: 'United Kingdom' },
-    { name: 'Paris', lat: 48.8566, lng: 2.3522, country: 'France' },
-    { name: 'Berlin', lat: 52.5200, lng: 13.4050, country: 'Germany' },
-    { name: 'Rome', lat: 41.9028, lng: 12.4964, country: 'Italy' },
-    { name: 'Madrid', lat: 40.4168, lng: -3.7038, country: 'Spain' },
-    { name: 'Amsterdam', lat: 52.3676, lng: 4.9041, country: 'Netherlands' },
-    { name: 'Vienna', lat: 48.2082, lng: 16.3738, country: 'Austria' },
-    
-    // North America
-    { name: 'New York', lat: 40.7128, lng: -74.0060, country: 'United States' },
-    { name: 'Los Angeles', lat: 34.0522, lng: -118.2437, country: 'United States' },
-    { name: 'Chicago', lat: 41.8781, lng: -87.6298, country: 'United States' },
-    { name: 'Toronto', lat: 43.6532, lng: -79.3832, country: 'Canada' },
-    { name: 'Vancouver', lat: 49.2827, lng: -123.1207, country: 'Canada' },
-    { name: 'Mexico City', lat: 19.4326, lng: -99.1332, country: 'Mexico' },
-    
-    // Asia
-    { name: 'Tokyo', lat: 35.6762, lng: 139.6503, country: 'Japan' },
-    { name: 'Seoul', lat: 37.5665, lng: 126.9780, country: 'South Korea' },
-    { name: 'Shanghai', lat: 31.2304, lng: 121.4737, country: 'China' },
-    { name: 'Hong Kong', lat: 22.3193, lng: 114.1694, country: 'Hong Kong' },
-    { name: 'Singapore', lat: 1.3521, lng: 103.8198, country: 'Singapore' },
-    { name: 'Bangkok', lat: 13.7563, lng: 100.5018, country: 'Thailand' },
-    { name: 'Mumbai', lat: 19.0760, lng: 72.8777, country: 'India' },
-    { name: 'Dubai', lat: 25.2048, lng: 55.2708, country: 'UAE' },
-    
-    // Oceania
-    { name: 'Sydney', lat: -33.8688, lng: 151.2093, country: 'Australia' },
-    { name: 'Melbourne', lat: -37.8136, lng: 144.9631, country: 'Australia' },
-    { name: 'Auckland', lat: -36.8485, lng: 174.7633, country: 'New Zealand' },
-    
-    // South America
-    { name: 'São Paulo', lat: -23.5505, lng: -46.6333, country: 'Brazil' },
-    { name: 'Rio de Janeiro', lat: -22.9068, lng: -43.1729, country: 'Brazil' },
-    { name: 'Buenos Aires', lat: -34.6118, lng: -58.3960, country: 'Argentina' },
-    { name: 'Lima', lat: -12.0464, lng: -77.0428, country: 'Peru' },
-    
-    // Africa
-    { name: 'Cairo', lat: 30.0444, lng: 31.2357, country: 'Egypt' },
-    { name: 'Cape Town', lat: -33.9249, lng: 18.4241, country: 'South Africa' },
-    { name: 'Lagos', lat: 6.5244, lng: 3.3792, country: 'Nigeria' },
-    { name: 'Nairobi', lat: -1.2921, lng: 36.8219, country: 'Kenya' },
-  ];
 
   const handleWeatherSearch = async (location: string, date: string) => {
     setLoading(true);
@@ -79,13 +67,13 @@ export default function Home() {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Hava durumu verisi alınamadı');
+        throw new Error(errorData.error || 'Weather data could not be retrieved');
       }
 
       const data = await response.json();
       setWeatherData(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -96,338 +84,562 @@ export default function Home() {
     setError(null);
     setWeatherData(null);
     setEventData(eventData);
+    setAiRecommendation(null);
 
     try {
-      const response = await fetch(`/api/weather?location=${encodeURIComponent(eventData.location)}&date=${eventData.date}&eventType=${encodeURIComponent(eventData.eventType)}`);
+      // Build API URL with optional endDate parameter
+      let apiUrl = `/api/weather?location=${encodeURIComponent(eventData.location)}&date=${eventData.date}&eventType=${encodeURIComponent(eventData.eventType)}`;
+      
+      if (eventData.endDate) {
+        apiUrl += `&endDate=${eventData.endDate}`;
+      }
+      
+      const response = await fetch(apiUrl);
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Hava durumu verisi alınamadı');
+        throw new Error(errorData.error || 'Weather data could not be retrieved');
       }
 
       const data = await response.json();
       setWeatherData(data);
+      
+      // Generate detailed AI recommendation based on NASA data analysis
+      const temp = data.weather.temperature.max;
+      const wind = data.weather.windSpeed;
+      const precip = data.weather.precipitation;
+      const humidity = data.weather.humidity;
+      
+      // Calculate weather risk probabilities - more realistic approach
+      const hotRisk = temp > 40 ? 60 : temp > 35 ? 40 : temp > 30 ? 20 : temp > 25 ? 10 : 5;
+      const coldRisk = temp < -5 ? 70 : temp < 0 ? 50 : temp < 5 ? 30 : temp < 10 ? 15 : 5;
+      const windyRisk = wind > 40 ? 50 : wind > 30 ? 30 : wind > 20 ? 20 : wind > 15 ? 10 : 5;
+      const wetRisk = precip > 20 ? 80 : precip > 15 ? 70 : precip > 10 ? 60 : precip > 5 ? 40 : 5;
+      const uncomfortableRisk = humidity > 90 && temp > 30 ? 40 : humidity > 80 && temp > 25 ? 25 : 10;
+      
+      // Calculate overall risk - more balanced
+      const riskFactors = [hotRisk, coldRisk, windyRisk, wetRisk, uncomfortableRisk];
+      const overallRisk = riskFactors.reduce((sum, risk) => sum + risk, 0) / riskFactors.length;
+      
+      const confidence = Math.max(70, 90 - overallRisk);
+      
+      // Calculate decision score based on AI Activity Assessment logic
+      // Use the same scoring system as AIActivityAssessment component
+      const avgTemp = (data.weather.temperature.max + data.weather.temperature.min) / 2;
+      const precipAmount = data.weather.precipitation;
+      const windSpeed = data.weather.windSpeed;
+      const uvIndex = data.weather.uvIndex;
+      
+      // Temperature score (same as AIActivityAssessment)
+      let tempScore = 100;
+      if (avgTemp < 0) tempScore = 10;
+      else if (avgTemp < 5) tempScore = 30;
+      else if (avgTemp < 10) tempScore = 50;
+      else if (avgTemp < 15) tempScore = 70;
+      else if (avgTemp >= 15 && avgTemp <= 25) tempScore = 100;
+      else if (avgTemp <= 30) tempScore = 80;
+      else if (avgTemp <= 35) tempScore = 50;
+      else tempScore = 20;
+      
+      // Precipitation score (same as AIActivityAssessment)
+      let precipScore = 100;
+      if (precipAmount >= 10) precipScore = 20;
+      else if (precipAmount >= 5) precipScore = 40;
+      else if (precipAmount >= 2) precipScore = 60;
+      else if (precipAmount > 0) precipScore = 80;
+      else precipScore = 100;
+      
+      // Wind score (same as AIActivityAssessment)
+      let windScore = 100;
+      if (windSpeed >= 30) windScore = 20;
+      else if (windSpeed >= 20) windScore = 40;
+      else if (windSpeed >= 15) windScore = 60;
+      else if (windSpeed >= 8) windScore = 80;
+      else windScore = 100;
+      
+      // UV score (same as AIActivityAssessment)
+      let uvScore = 100;
+      if (uvIndex >= 11) uvScore = 30;
+      else if (uvIndex >= 8) uvScore = 50;
+      else if (uvIndex >= 6) uvScore = 70;
+      else if (uvIndex >= 3) uvScore = 90;
+      else uvScore = 100;
+      
+      // Calculate overall score with more realistic logic
+      let decisionScore = Math.round((tempScore + precipScore + windScore + uvScore) / 4);
+      
+      // Override score for dangerous conditions - be more realistic
+      if (precipAmount >= 10 || windSpeed >= 30 || avgTemp >= 35 || avgTemp <= -10) {
+        // Dangerous conditions - strongly recommend against going
+        decisionScore = Math.min(decisionScore, 25);
+      } else if (precipAmount >= 5 || windSpeed >= 20 || avgTemp >= 30 || avgTemp <= 0) {
+        // Challenging conditions - caution advised
+        decisionScore = Math.min(decisionScore, 45);
+      }
+      
+      // Generate optimal time suggestions based on weather conditions
+      const getOptimalTimes = () => {
+        const times = [];
+        
+        // Don't suggest optimal times for dangerous conditions
+        if (precipAmount >= 10 || windSpeed >= 30 || avgTemp >= 35 || avgTemp <= -10) {
+          return ["Weather conditions are too challenging for optimal timing recommendations"];
+        } else if (precipAmount >= 5 || windSpeed >= 20 || avgTemp >= 30 || avgTemp <= 0) {
+          return ["Consider postponing or choosing indoor alternatives"];
+        }
+        
+        // Only suggest optimal times for good conditions
+        if (temp < 25 && temp > 15) {
+          times.push("09:00-12:00 (morning hours - warm sun)");
+          times.push("15:00-18:00 (afternoon - ideal temperature)");
+        } else if (temp > 25) {
+          times.push("08:00-11:00 (early hours - not too hot yet)");
+          times.push("17:00-19:00 (evening hours - sunset)");
+        } else {
+          times.push("11:00-15:00 (daytime hours - warmest time)");
+          times.push("16:00-18:00 (afternoon)");
+        }
+        return times;
+      };
+
+      const getWeatherMood = () => {
+        if (decisionScore >= 80) return "good";
+        if (decisionScore >= 65) return "moderate";
+        if (decisionScore >= 50) return "challenging";
+        return "poor";
+      };
+
+      const getActivityAdvice = () => {
+        // First check for dangerous conditions - be realistic
+        if (precipAmount >= 10 || windSpeed >= 30 || avgTemp >= 35 || avgTemp <= -10) {
+          return "Weather conditions are challenging and may not be suitable for outdoor activities.";
+        } else if (precipAmount >= 5 || windSpeed >= 20 || avgTemp >= 30 || avgTemp <= 0) {
+          return "Weather conditions require extra precautions and careful planning.";
+        }
+        
+        // Only give positive advice for good conditions
+        if (eventData.eventType.toLowerCase().includes('picnic') || eventData.eventType.toLowerCase().includes('piknik')) {
+          if (temp > 25) return "Choose a shaded area and bring plenty of water. Don't forget to wear a sun hat.";
+          if (temp < 10) return "Don't forget to bring hot beverages and blankets.";
+          return "Perfect weather for a picnic! You'll have a wonderful day.";
+        } else if (eventData.eventType.toLowerCase().includes('wedding') || eventData.eventType.toLowerCase().includes('düğün')) {
+          if (wind > 15) return "Don't forget to protect your hairstyle from the wind.";
+          if (precip > 5) return "Have an alternative indoor venue plan ready.";
+          return "Wonderful weather for your wedding! You can take amazing photos.";
+        } else if (eventData.eventType.toLowerCase().includes('sport') || eventData.eventType.toLowerCase().includes('spor')) {
+          if (temp > 30) return "Play during early hours and take regular breaks.";
+          if (wind > 20) return "Wind may affect the ball game, be careful.";
+          return "Perfect weather conditions for sports!";
+        }
+        return "It will be a beautiful day for your event!";
+      };
+
+      const optimalTimes = getOptimalTimes();
+      const weatherMood = getWeatherMood();
+      const activityAdvice = getActivityAdvice();
+
+      // Generate recommendation text based on date range
+      const dateRangeText = eventData.endDate && eventData.endDate !== eventData.date 
+        ? `${eventData.date} - ${eventData.endDate}`
+        : `${eventData.date}`;
+      
+      const isMultiDay = eventData.endDate && eventData.endDate !== eventData.date;
+      
+      // More realistic greeting based on decision score
+      const getGreeting = () => {
+        if (decisionScore >= 80) {
+          return `Hello! The weather for ${eventData.location}${eventData.district ? `, ${eventData.district}` : ''} on ${dateRangeText} looks ${weatherMood}. `;
+        } else if (decisionScore >= 65) {
+          return `Hello! The weather for ${eventData.location}${eventData.district ? `, ${eventData.district}` : ''} on ${dateRangeText} looks ${weatherMood}. `;
+        } else if (decisionScore >= 50) {
+          return `Hello! The weather for ${eventData.location}${eventData.district ? `, ${eventData.district}` : ''} on ${dateRangeText} looks ${weatherMood}. `;
+        } else {
+          return `Hello! The weather for ${eventData.location}${eventData.district ? `, ${eventData.district}` : ''} on ${dateRangeText} looks ${weatherMood}. `;
+        }
+      };
+      
+      let recommendationText = getGreeting();
+      
+      if (isMultiDay && weatherData?.dailyData) {
+        const dailyData = weatherData.dailyData;
+        const tempRange = {
+          max: Math.max(...dailyData.temperature_2m_max),
+          min: Math.min(...dailyData.temperature_2m_min)
+        };
+        const totalPrecip = dailyData.precipitation_sum.reduce((a: number, b: number) => a + b, 0);
+        const maxWind = Math.max(...dailyData.windspeed_10m_max);
+        
+        recommendationText += `\n\n📊 ${eventData.endDate && new Date(eventData.endDate).getTime() - new Date(eventData.date).getTime() > 0 ? 
+          Math.ceil((new Date(eventData.endDate).getTime() - new Date(eventData.date).getTime()) / (1000 * 60 * 60 * 24)) + 1 : 1}-day weather forecast:
+• Temperature: ${tempRange.min}°C - ${tempRange.max}°C
+• Total precipitation: ${totalPrecip.toFixed(1)}mm
+• Highest wind: ${maxWind.toFixed(1)} km/h
+
+${activityAdvice}`;
+      } else {
+        recommendationText += `\n\nToday's temperature will be ${temp}°C. ${activityAdvice}`;
+      }
+      
+      recommendationText += `\n\nOptimal times:
+${optimalTimes.map(time => `• ${time}`).join('\n')}`;
+
+      // More realistic conclusion based on decision score
+      if (decisionScore >= 80) {
+        recommendationText += `\n\nGood news! It's a suitable day for your event. According to NASA data, there's a ${Math.round(100 - decisionScore)}% risk but it's manageable.`;
+      } else if (decisionScore >= 65) {
+        recommendationText += `\n\nBe careful: ${Math.round(100 - decisionScore)}% risk exists. You can go by taking precautions.`;
+      } else {
+        recommendationText += `\n\nOur recommendation: Due to ${Math.round(100 - decisionScore)}% risk, it might be better to postpone the event.`;
+      }
+
+      // Realistic weather warnings
+      if (precipAmount >= 10) {
+        recommendationText += `\n\n⚠️ HEAVY RAIN WARNING: ${precipAmount.toFixed(1)}mm expected. Consider postponing outdoor activities.`;
+      } else if (precipAmount > 5) {
+        recommendationText += `\n\nHigh chance of rain, bring umbrella and raincoat.`;
+      } else if (precipAmount > 0) {
+        recommendationText += `\n\nLight rain possible, don't forget your umbrella.`;
+      }
+      
+      if (windSpeed >= 30) {
+        recommendationText += `\n\n⚠️ VERY STRONG WINDS: ${windSpeed.toFixed(1)} km/h expected. Dangerous conditions - consider postponing.`;
+      } else if (windSpeed >= 20) {
+        recommendationText += `\n\nStrong winds expected (${windSpeed.toFixed(1)} km/h), be careful.`;
+      } else if (windSpeed >= 15) {
+        recommendationText += `\n\nWindy weather, protect your hairstyle.`;
+      }
+      
+      if (avgTemp >= 35) {
+        recommendationText += `\n\n⚠️ EXTREME HEAT: ${avgTemp.toFixed(1)}°C expected. Dangerous conditions - avoid outdoor activities.`;
+      } else if (avgTemp <= -10) {
+        recommendationText += `\n\n⚠️ EXTREME COLD: ${avgTemp.toFixed(1)}°C expected. Dangerous conditions - avoid outdoor activities.`;
+      } else if (avgTemp >= 30) {
+        recommendationText += `\n\nVery hot weather expected (${avgTemp.toFixed(1)}°C), don't forget to drink plenty of water.`;
+      } else if (avgTemp <= 0) {
+        recommendationText += `\n\nCold weather (${avgTemp.toFixed(1)}°C), wear warm clothes.`;
+      }
+
+      const mockRecommendation: AIRecommendation = {
+        recommendation: recommendationText,
+        confidence: Math.floor(confidence),
+        decisionScore: Math.floor(decisionScore),
+        risks: [
+          {
+            type: 'hot' as const,
+            probability: hotRisk,
+            severity: (hotRisk > 70 ? 'high' : hotRisk > 40 ? 'medium' : 'low') as 'low' | 'medium' | 'high',
+            description: hotRisk > 70 ? `Very hot! ${hotRisk}% chance of temperature above 30°C expected. Don't forget to drink plenty of water and stay in the shade.` : 
+                       hotRisk > 40 ? `Hot weather warning: ${hotRisk}% chance of high temperature. Bring hat and sunscreen.` :
+                       `Temperature at normal level. You can be comfortable.`
+          },
+          {
+            type: 'cold' as const,
+            probability: coldRisk,
+            severity: (coldRisk > 70 ? 'high' : coldRisk > 40 ? 'medium' : 'low') as 'low' | 'medium' | 'high',
+            description: coldRisk > 70 ? `Cold weather! ${coldRisk}% chance of temperature below 10°C. Wear warm clothes.` :
+                       coldRisk > 40 ? `Cool weather: ${coldRisk}% chance it might be cold. Bring jacket or sweater.` :
+                       `Temperature at comfortable level.`
+          },
+          {
+            type: 'windy' as const,
+            probability: windyRisk,
+            severity: (windyRisk > 70 ? 'high' : windyRisk > 40 ? 'medium' : 'low') as 'low' | 'medium' | 'high',
+            description: windyRisk > 70 ? `Strong wind! ${windyRisk}% chance of wind above 15 km/h. Protect your hair and belongings.` :
+                       windyRisk > 40 ? `Windy weather: ${windyRisk}% chance of wind.` :
+                       `Wind is light, you can be comfortable.`
+          },
+          {
+            type: 'wet' as const,
+            probability: wetRisk,
+            severity: (wetRisk > 70 ? 'high' : wetRisk > 40 ? 'medium' : 'low') as 'low' | 'medium' | 'high',
+            description: wetRisk > 70 ? `Rain risk! ${wetRisk}% chance of rain. Bring umbrella and raincoat.` :
+                       wetRisk > 40 ? `Light rain: ${wetRisk}% chance of precipitation. Consider bringing umbrella.` :
+                       `Low rain risk.`
+          },
+          {
+            type: 'uncomfortable' as const,
+            probability: uncomfortableRisk,
+            severity: (uncomfortableRisk > 70 ? 'high' : uncomfortableRisk > 40 ? 'medium' : 'low') as 'low' | 'medium' | 'high',
+            description: uncomfortableRisk > 70 ? `Uncomfortable weather: ${uncomfortableRisk}% chance that humidity and temperature combination might be challenging.` :
+                       uncomfortableRisk > 40 ? `Mild discomfort: ${uncomfortableRisk}% chance of humid weather.` :
+                       `Weather conditions are comfortable.`
+          }
+        ].filter(risk => risk.probability > 15),
+        alternativeDays: ['2024-06-15', '2024-06-20', '2024-06-25', '2024-06-30'],
+        summary: isMultiDay && weatherData?.dailyData ? 
+          `${Math.ceil((new Date(eventData.endDate!).getTime() - new Date(eventData.date).getTime()) / (1000 * 60 * 60 * 24)) + 1}-Day Weather Summary: Temperature ${Math.min(...weatherData.dailyData.temperature_2m_min)}°C - ${Math.max(...weatherData.dailyData.temperature_2m_max)}°C | Total Precipitation ${weatherData.dailyData.precipitation_sum.reduce((a: number, b: number) => a + b, 0).toFixed(1)}mm | Highest Wind ${Math.max(...weatherData.dailyData.windspeed_10m_max).toFixed(1)} km/h` :
+          `Weather Summary: ${temp}°C (${temp > 25 ? 'Hot' : temp < 10 ? 'Cold' : 'Mild'}) | Wind ${wind} km/h (${wind > 20 ? 'Strong' : wind > 10 ? 'Moderate' : 'Light'}) | Precipitation ${precip}mm (${precip > 10 ? 'Heavy' : precip > 5 ? 'Moderate' : 'Light'}) | Humidity ${humidity}% (${humidity > 80 ? 'High' : humidity > 60 ? 'Moderate' : 'Low'})`
+      };
+      
+      setAiRecommendation(mockRecommendation);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMapLocationSelect = (location: string, date: string) => {
-    handleWeatherSearch(location, date);
-    setActiveTab('search');
+
+  const handleDownload = (format: 'json' | 'csv') => {
+    if (!weatherData || !eventData) return;
+    
+    const metadata = {
+      generatedAt: new Date().toISOString(),
+      dataSource: "NASA Earth Observation Data",
+      analysisTool: "Outdoor Event Weather Assistant",
+      version: "1.0.0",
+      dataSources: [
+        "NASA GES DISC (Global Earth Science Data and Information System)",
+        "MERRA-2 (Modern-Era Retrospective Analysis for Research and Applications)",
+        "GPM (Global Precipitation Measurement)",
+        "MODIS (Moderate Resolution Imaging Spectroradiometer)",
+        "AI Analysis Model"
+      ],
+      units: {
+        temperature: "Celsius (°C)",
+        windSpeed: "kilometers per hour (km/h)",
+        precipitation: "millimeters (mm)",
+        humidity: "percentage (%)",
+        probability: "percentage (%)"
+      },
+      location: {
+        city: eventData.location,
+        district: eventData.district,
+        country: eventData.country,
+        coordinates: weatherData.location?.coordinates
+      }
+    };
+
+    const data = {
+      metadata,
+      query: {
+        location: `${eventData.location}${eventData.district ? `, ${eventData.district}` : ''}, ${eventData.country}`,
+        date: eventData.date,
+        eventType: eventData.eventType,
+        thresholds: eventData.thresholds
+      },
+      weather: weatherData,
+      aiRecommendation: aiRecommendation,
+      sourceLinks: [
+        "https://disc.gsfc.nasa.gov/",
+        "https://gmao.gsfc.nasa.gov/reanalysis/MERRA-2/",
+        "https://gpm.nasa.gov/",
+        "https://modis.gsfc.nasa.gov/"
+      ]
+    };
+
+    if (format === 'json') {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nasa-weather-analysis-${eventData.location.replace(/\s+/g, '-')}-${eventData.date}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const csv = `Location,Date,Event Type,Temperature (C),Wind Speed (km/h),Precipitation (mm),Humidity (%),Hot Risk (%),Cold Risk (%),Windy Risk (%),Wet Risk (%),Uncomfortable Risk (%),Overall Risk (%),Confidence (%)\n"${eventData.location},${eventData.district},${eventData.country}",${eventData.date},${eventData.eventType},${weatherData.weather.temperature.max},${weatherData.weather.windSpeed},${weatherData.weather.precipitation},${weatherData.weather.humidity},${aiRecommendation?.risks.find(r => r.type === 'hot')?.probability || 0},${aiRecommendation?.risks.find(r => r.type === 'cold')?.probability || 0},${aiRecommendation?.risks.find(r => r.type === 'windy')?.probability || 0},${aiRecommendation?.risks.find(r => r.type === 'wet')?.probability || 0},${aiRecommendation?.risks.find(r => r.type === 'uncomfortable')?.probability || 0},${Math.max(...(aiRecommendation?.risks.map(r => r.probability) || [0]))},${aiRecommendation?.confidence || 0}`;
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nasa-weather-analysis-${eventData.location.replace(/\s+/g, '-')}-${eventData.date}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Enhanced Background Elements - Lacivert tema */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 pointer-events-none"></div>
-      <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 via-blue-500/15 to-purple-500/20 pointer-events-none"></div>
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.08%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40 pointer-events-none"></div>
-      
-      {/* Floating Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-20 w-2 h-2 bg-white/20 rounded-full animate-pulse"></div>
-        <div className="absolute top-40 right-32 w-1 h-1 bg-cyan-300/40 rounded-full animate-bounce" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute bottom-32 left-40 w-3 h-3 bg-purple-300/30 rounded-full animate-ping" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-60 right-20 w-2 h-2 bg-pink-300/25 rounded-full animate-pulse" style={{ animationDelay: '3s' }}></div>
-        <div className="absolute bottom-20 right-40 w-1 h-1 bg-blue-300/35 rounded-full animate-bounce" style={{ animationDelay: '0.5s' }}></div>
-            </div>
-            
-      <div className="relative z-10 container mx-auto px-4 py-8" style={{ position: 'relative', zIndex: 10 }}>
-        {/* Language Toggle */}
-        <div className="flex justify-end mb-8">
-          <div className="flex gap-2">
-              <button
-                onClick={() => setLanguage('tr')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  language === 'tr' 
-                  ? 'bg-white/20 text-white' 
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
-                }`}
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+      {/* Header */}
+      <Header />
+
+      {!showMainContent ? (
+        /* Landing Page */
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="text-center max-w-4xl mx-auto"
+          >
+            {/* Hero Section */}
+            <div className="mb-12">
+              <motion.h1
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.8 }}
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-light text-white mb-4 sm:mb-6 tracking-tight px-2"
               >
-              🇹🇷 TR
-              </button>
-              <button
-                onClick={() => setLanguage('en')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  language === 'en' 
-                  ? 'bg-white/20 text-white' 
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
-                }`}
+                Outdoor Event
+                <span className="block bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent font-medium">
+                  Weather Assistant
+                </span>
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.8 }}
+                className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-4"
               >
-              🇺🇸 EN
-              </button>
+                Advanced NASA data analysis for intelligent outdoor event planning
+              </motion.p>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+                className="inline-flex items-center gap-2 sm:gap-3 bg-white/10 backdrop-blur-md rounded-full px-4 sm:px-6 py-2 sm:py-3 border border-white/20 shadow-lg text-sm sm:text-base"
+              >
+                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-lg shadow-cyan-400/50"></div>
+                <span className="text-white font-medium">Powered by NASA Data & AI</span>
+              </motion.div>
             </div>
-          </div>
 
-        {!showMainContent ? (
-          /* Landing Page */
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center max-w-4xl mx-auto animate-fadeIn">
-              {/* Enhanced Main Title */}
-              <div className="mb-8 md:mb-12">
-                <div className="relative">
-                  <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-4 md:mb-8 animate-slideUp bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
-                    {t('weather_assistant')}
-                  </h1>
-                  <div className="absolute -top-2 -left-2 w-full h-full bg-gradient-to-r from-cyan-400/20 via-blue-500/20 to-purple-600/20 blur-xl animate-pulse"></div>
-                </div>
-                <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white/90 leading-relaxed animate-slideUp px-4 font-light" style={{ animationDelay: '0.2s' }}>
-                  {t('subtitle')}
-                </p>
-                <div className="mt-6 animate-fadeIn" style={{ animationDelay: '0.4s' }}>
-                  <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-full px-6 py-3 border border-white/20">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-white/90 text-sm font-medium">Real-time Weather Data</span>
-                  </div>
-                </div>
-              </div>
 
-              {/* Enhanced Features */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12 md:mb-16 animate-scaleIn px-4" style={{ animationDelay: '0.4s' }}>
-                <div className="group text-center">
-                  <div className="relative">
-                    <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-full mb-3 md:mb-4 animate-glow backdrop-blur-md border border-cyan-400/30 group-hover:scale-110 transition-transform duration-300">
-                      <Activity className="w-8 h-8 md:w-10 md:h-10 text-cyan-300" />
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-600/10 rounded-full blur-md group-hover:blur-lg transition-all duration-300"></div>
-                  </div>
-                  <h3 className="text-lg md:text-xl font-semibold text-white mb-2 md:mb-3 group-hover:text-cyan-300 transition-colors">{t('event_planning')}</h3>
-                  <p className="text-sm md:text-base text-white/80 group-hover:text-white/90 transition-colors">{t('plan_events_description')}</p>
-                </div>
-                <div className="group text-center">
-                  <div className="relative">
-                    <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-purple-500/20 to-pink-600/20 rounded-full mb-3 md:mb-4 animate-glow backdrop-blur-md border border-purple-400/30 group-hover:scale-110 transition-transform duration-300" style={{ animationDelay: '0.2s' }}>
-                      <Search className="w-8 h-8 md:w-10 md:h-10 text-purple-300" />
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-600/10 rounded-full blur-md group-hover:blur-lg transition-all duration-300"></div>
-                  </div>
-                  <h3 className="text-lg md:text-xl font-semibold text-white mb-2 md:mb-3 group-hover:text-purple-300 transition-colors">{t('weather_search')}</h3>
-                  <p className="text-sm md:text-base text-white/80 group-hover:text-white/90 transition-colors">{t('search_weather_description')}</p>
-                </div>
-                <div className="group text-center">
-                  <div className="relative">
-                    <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-full mb-3 md:mb-4 animate-glow backdrop-blur-md border border-green-400/30 group-hover:scale-110 transition-transform duration-300" style={{ animationDelay: '0.4s' }}>
-                      <Map className="w-8 h-8 md:w-10 md:h-10 text-green-300" />
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-emerald-600/10 rounded-full blur-md group-hover:blur-lg transition-all duration-300"></div>
-                  </div>
-                  <h3 className="text-lg md:text-xl font-semibold text-white mb-2 md:mb-3 group-hover:text-green-300 transition-colors">{t('map_view')}</h3>
-                  <p className="text-sm md:text-base text-white/80 group-hover:text-white/90 transition-colors">{t('map_description')}</p>
-                </div>
-              </div>
-
-              {/* Enhanced CTA Button */}
-              <div className="animate-scaleIn px-4" style={{ animationDelay: '0.6s' }}>
-                <div className="relative inline-block">
-              <button
-                onClick={() => setShowMainContent(true)}
-                    className="relative bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 text-white text-lg md:text-xl px-8 md:px-12 py-3 md:py-4 rounded-2xl font-semibold hover:scale-105 transition-all duration-300 shadow-2xl w-full sm:w-auto overflow-hidden group"
-                    style={{ position: 'relative', zIndex: 50 }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                    <span className="relative z-10 flex items-center gap-2">
-                      {t('get_started')} 
-                      <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
-                    </span>
-                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-              </button>
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 rounded-2xl blur-md opacity-50 group-hover:opacity-75 transition-opacity duration-300 pointer-events-none"></div>
-                </div>
-              </div>
-
-              {/* Additional Info */}
-              <div className="mt-16 text-center animate-fadeIn" style={{ animationDelay: '0.8s' }}>
-                <p className="text-white/70 text-lg mb-4">{t('powered_by')}</p>
-                <div className="flex justify-center items-center gap-8 text-white/60">
-                  <span className="text-sm">🌍 NASA Data</span>
-                  <span className="text-sm">🤖 AI Powered</span>
-                  <span className="text-sm">⚡ Real-time</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* Main Content */
-          <>
-            {/* Header */}
-            <div className="text-center mb-8 md:mb-16 animate-fadeIn px-4">
-              <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 md:mb-6 animate-slideUp">
-                {t('weather_assistant')}
-              </h1>
-              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed animate-slideUp" style={{ animationDelay: '0.2s' }}>
-                {t('subtitle')}
-              </p>
+            {/* CTA Button */}
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.2, duration: 0.5 }}
+              onClick={() => setShowMainContent(true)}
+              className="bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 text-white text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-medium hover:from-cyan-400 hover:via-blue-400 hover:to-purple-500 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/25 border border-cyan-400/30"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span className="flex items-center gap-2">
+                Start Analysis
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </span>
+            </motion.button>
+          </motion.div>
         </div>
-
-              {/* Tab Navigation */}
-        <div className="flex justify-center mb-8 md:mb-16 animate-scaleIn px-4" style={{ animationDelay: '0.4s' }}>
-          <div className="flex gap-1 md:gap-2 max-w-md md:max-w-none mobile-nav justify-center">
-                  <button
-              onClick={() => setActiveTab('event')}
-              className={`px-3 md:px-6 py-2 md:py-3 rounded-lg md:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-1 md:gap-2 text-sm md:text-base ${
-                activeTab === 'event'
-                  ? 'bg-white/20 text-white'
-                        : 'text-white/70 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-              <Activity size={16} className="md:w-5 md:h-5" />
-              <span className="hidden sm:inline">{t('event_planning')}</span>
-              <span className="sm:hidden">Event</span>
-                  </button>
-                  <button
-              onClick={() => setActiveTab('search')}
-              className={`px-3 md:px-6 py-2 md:py-3 rounded-lg md:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-1 md:gap-2 text-sm md:text-base ${
-                activeTab === 'search'
-                  ? 'bg-white/20 text-white'
-                        : 'text-white/70 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-              <Search size={16} className="md:w-5 md:h-5" />
-              <span className="hidden sm:inline">{t('weather_search')}</span>
-              <span className="sm:hidden">Search</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('map')}
-              className={`px-3 md:px-6 py-2 md:py-3 rounded-lg md:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-1 md:gap-2 text-sm md:text-base ${
-                      activeTab === 'map'
-                  ? 'bg-white/20 text-white'
-                        : 'text-white/70 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-              <Map size={16} className="md:w-5 md:h-5" />
-              <span className="hidden sm:inline">{t('map_view')}</span>
-              <span className="sm:hidden">Map</span>
-                  </button>
+      ) : (
+        <>
+          {/* Main Content */}
+          <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-4 sm:space-y-8"
+          >
+                {/* Search Form */}
+                <div className="max-w-4xl mx-auto px-2">
+                  <EnhancedWeatherSearch onSearch={handleEventSearch} loading={loading} />
                 </div>
-              </div>
 
-        {/* Tab Content */}
-        <div className="animate-fadeIn" style={{ animationDelay: '0.6s' }}>
-          {activeTab === 'event' ? (
-            <>
-              {/* Event Search Component */}
-              <div className="max-w-2xl mx-auto mb-8">
-                <EventWeatherSearch onSearch={handleEventSearch} />
-              </div>
-
-              {/* Loading State */}
-              {loading && (
-                <div className="flex justify-center mb-8">
-                  <LoadingSpinner />
-                </div>
-              )}
-
-              {/* Error State */}
-                {error && (
-                <div className="max-w-2xl mx-auto mb-8">
-                  <div className="clean-card p-6 text-center animate-bounce border-red-200 bg-red-50">
-                    <div className="text-red-600 text-lg font-medium mb-2">
-                      ⚠️ {t('error')}
-                    </div>
-                    <p className="text-red-700 mb-4">{error}</p>
-                    <div className="text-sm text-red-600">
-                      <p className="mb-2">💡 <strong>Öneriler:</strong></p>
-                      <ul className="text-left space-y-1">
-                        <li>• Konum adını doğru yazdığınızdan emin olun</li>
-                        <li>• Farklı bir konum adı deneyin</li>
-                        <li>• İnternet bağlantınızı kontrol edin</li>
-                        <li>• Sayfayı yenileyin ve tekrar deneyin</li>
-                      </ul>
-                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-blue-800 font-medium mb-2">🌍 Önerilen Konumlar:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {['İstanbul', 'Ankara', 'İzmir', 'New York', 'London', 'Berlin', 'Paris', 'Tokyo'].map((city, index) => (
-                            <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                              {city}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                {/* Loading State */}
+                {loading && (
+                  <div className="flex justify-center">
+                    <LoadingSpinner />
                   </div>
                 )}
 
-              {/* Event Results */}
-              {weatherData && eventData && !loading && (
-                <div className="max-w-6xl mx-auto">
-                  <EventWeatherResults eventData={eventData} weatherData={weatherData} />
-                </div>
-              )}
-            </>
-          ) : activeTab === 'search' ? (
-            <>
-              {/* Search Component */}
-              <div className="max-w-2xl mx-auto mb-8">
-                    <WeatherSearch onSearch={handleWeatherSearch} />
-              </div>
-
-              {/* Loading State */}
-              {loading && (
-                <div className="flex justify-center mb-8">
-                  <LoadingSpinner />
-                </div>
-              )}
-
-              {/* Error State */}
-              {error && (
-                <div className="max-w-2xl mx-auto mb-8">
-                  <div className="clean-card p-6 text-center animate-bounce border-red-200 bg-red-50">
-                    <div className="text-red-600 text-lg font-medium mb-2">
-                      ⚠️ {t('error')}
+                {/* Error State */}
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="max-w-2xl mx-auto"
+                  >
+                    <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+                      <div className="text-red-600 text-lg font-medium mb-2">⚠️ Error</div>
+                      <p className="text-red-700 mb-4">{error}</p>
                     </div>
-                    <p className="text-red-700 mb-4">{error}</p>
-                    <div className="text-sm text-red-600">
-                      <p className="mb-2">💡 <strong>Öneriler:</strong></p>
-                      <ul className="text-left space-y-1">
-                        <li>• Konum adını doğru yazdığınızdan emin olun</li>
-                        <li>• Farklı bir konum adı deneyin</li>
-                        <li>• İnternet bağlantınızı kontrol edin</li>
-                        <li>• Sayfayı yenileyin ve tekrar deneyin</li>
-                      </ul>
-                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-blue-800 font-medium mb-2">🌍 Önerilen Konumlar:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {['İstanbul', 'Ankara', 'İzmir', 'New York', 'London', 'Berlin', 'Paris', 'Tokyo'].map((city, index) => (
-                            <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                              {city}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                  </motion.div>
+                )}
+
+                {/* Decision Bar */}
+                {aiRecommendation && eventData && (
+                  <div className="max-w-4xl mx-auto mb-4 sm:mb-8 px-2">
+                    <DecisionBar
+                      score={aiRecommendation.decisionScore}
+                      recommendation={aiRecommendation.recommendation}
+                      risks={aiRecommendation.risks}
+                    />
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Results */}
-              {weatherData && !loading && (
-                <div className="max-w-6xl mx-auto">
-                  <WeatherResults data={weatherData} />
-                </div>
+                {/* AI Recommendation */}
+                {aiRecommendation && eventData && (
+                  <div className="max-w-4xl mx-auto px-2">
+                    <AIRecommendationCard
+                      recommendation={aiRecommendation}
+                      location={`${eventData.location}${eventData.district ? `, ${eventData.district}` : ''}, ${eventData.country}`}
+                      date={eventData.date}
+                      eventType={eventData.eventType}
+                      onDownload={handleDownload}
+                    />
+                  </div>
+                )}
+
+                {/* AI Activity Assessment */}
+                {weatherData && eventData && (
+                  <div className="max-w-4xl mx-auto">
+                    <AIActivityAssessment
+                      weatherData={{
+                        temperature: weatherData.weather.temperature,
+                        precipitation: weatherData.weather.precipitation,
+                        windSpeed: weatherData.weather.windSpeed,
+                        humidity: weatherData.weather.humidity,
+                        uvIndex: weatherData.weather.uvIndex,
+                        weatherCode: weatherData.weather.weatherCode
+                      }}
+                      eventType={eventData.eventType}
+                      location={eventData.location}
+                      date={eventData.date}
+                    />
+                  </div>
+                )}
+
+                {/* Dynamic Weather Chart */}
+                {weatherData && eventData && (
+                  <div className="max-w-6xl mx-auto space-y-8">
+                    {eventData.endDate ? (
+                      // Multi-day chart for date ranges
+                      <MultiDayWeatherChart
+                        startDate={eventData.date}
+                        endDate={eventData.endDate}
+                        location={eventData.location}
+                        weatherData={weatherData}
+                        onDownload={handleDownload}
+                      />
+                    ) : (
+                      // Hourly chart for single day
+                      <HourlyWeatherChart
+                        currentData={{
+                          date: eventData.date,
+                          temperature: (weatherData.weather.temperature.max + weatherData.weather.temperature.min) / 2,
+                          windSpeed: weatherData.weather.windSpeed,
+                          precipitation: weatherData.weather.precipitation,
+                          humidity: weatherData.weather.humidity,
+                          comfortIndex: weatherData.comfortIndex.score,
+                          uvIndex: weatherData.weather.uvIndex
+                        }}
+                        location={eventData.location}
+                        targetDate={eventData.date}
+                        onDownload={handleDownload}
+                      />
                     )}
-                  </>
-          ) : (
-            /* Map Component */
-            <div className="max-w-7xl mx-auto">
-                  <WeatherMap 
-                    locations={mapLocations} 
-                    onLocationSelect={handleMapLocationSelect}
-                  />
-            </div>
-          )}
-          </div>
 
-        {/* Footer */}
-        <footer className="text-center mt-16 text-white/60 animate-fadeIn" style={{ animationDelay: '0.8s' }}>
-          <p>{t('footer')}</p>
-        </footer>
-          </>
-        )}
-      </div>
+
+                    {/* Advanced NASA Data Sources */}
+                    <AdvancedNASAData
+                      location={eventData.location}
+                      coordinates={{
+                        lat: weatherData.location.coordinates.latitude,
+                        lon: weatherData.location.coordinates.longitude
+                      }}
+                      date={eventData.date}
+                      endDate={eventData.endDate}
+                    />
+                  </div>
+                )}
+          </motion.div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

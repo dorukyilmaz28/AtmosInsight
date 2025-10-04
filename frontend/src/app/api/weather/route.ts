@@ -126,26 +126,56 @@ async function getCoordinates(location: string) {
 /**
  * Get NASA POWER data for additional scientific insights
  */
-async function getNASAPowerData(latitude: number, longitude: number, date: string) {
+async function getNASAPowerData(latitude: number, longitude: number, date: string, endDate?: string) {
   try {
     // NASA POWER API requires YYYYMMDD format
-    const nasaDate = date.replace(/-/g, '');
+    const nasaStartDate = date.replace(/-/g, '');
+    const nasaEndDate = (endDate || date).replace(/-/g, '');
     
-    const response = await fetch(`${NASA_POWER_BASE_URL}?parameters=T2M_MAX,T2M_MIN,PRECTOT,WS2M,RH2M,ALLSKY_SFC_SW_DWN&community=RE&longitude=${longitude}&latitude=${latitude}&start=${nasaDate}&end=${nasaDate}&format=JSON`, {
+    // Enhanced parameters for more comprehensive data
+    const parameters = [
+      'T2M_MAX',      // Maximum temperature
+      'T2M_MIN',      // Minimum temperature
+      'T2M',          // Mean temperature
+      'PRECTOT',      // Precipitation
+      'WS2M',         // Wind speed at 2m
+      'WS10M',        // Wind speed at 10m (more standard)
+      'RH2M',         // Relative humidity at 2m
+      'ALLSKY_SFC_SW_DWN', // All-sky surface shortwave downward irradiance
+      'PS',           // Surface pressure
+      'TOA_SW_DWN'    // Top-of-atmosphere shortwave downward irradiance
+    ].join(',');
+    
+    const nasaUrl = `${NASA_POWER_BASE_URL}?parameters=${parameters}&community=RE&longitude=${longitude}&latitude=${latitude}&start=${nasaStartDate}&end=${nasaEndDate}&format=JSON`;
+    
+    console.log('Fetching NASA POWER data:', {
+      url: nasaUrl,
+      startDate: nasaStartDate,
+      endDate: nasaEndDate,
+      coordinates: { latitude, longitude }
+    });
+    
+    const response = await fetch(nasaUrl, {
       next: { revalidate: 3600 }, // Cache for 1 hour
-      signal: AbortSignal.timeout(15000) // 15 second timeout
+      signal: AbortSignal.timeout(20000) // 20 second timeout
     });
     
     if (!response.ok) {
-      console.warn('NASA POWER API failed, continuing without NASA data');
+      console.warn(`NASA POWER API failed with status ${response.status}: ${response.statusText}`);
       return null;
     }
     
     try {
-      return await response.json();
+      const data = await response.json();
+      console.log('NASA POWER API response received:', {
+        hasProperties: !!data.properties,
+        hasParameter: !!data.properties?.parameter,
+        parameters: data.properties?.parameter ? Object.keys(data.properties.parameter) : []
+      });
+      return data;
     } catch (jsonError) {
       console.error('NASA API JSON parsing error:', jsonError);
-      return null; // Return null if JSON parsing fails
+      return null;
     }
   } catch (error) {
     console.warn('Error fetching NASA POWER data:', error);
@@ -156,13 +186,13 @@ async function getNASAPowerData(latitude: number, longitude: number, date: strin
 /**
  * Get weather data from Open-Meteo API with fallback
  */
-async function getWeatherData(latitude: number, longitude: number, date: string) {
+async function getWeatherData(latitude: number, longitude: number, date: string, endDate?: string) {
   try {
     const params = new URLSearchParams({
       latitude: latitude.toString(),
       longitude: longitude.toString(),
       start_date: date,
-      end_date: date,
+      end_date: endDate || date,
       daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,winddirection_10m_dominant,relative_humidity_2m_max,weathercode,uv_index_max,sunset,sunrise',
       timezone: 'auto'
     });
@@ -446,97 +476,97 @@ function generateAIRecommendation(weather: {
   let recommendation = '';
   
   if (eventType) {
-    recommendation += `🎯 ${eventType} Event Weather Analysis for ${location}:\n\n`;
+    recommendation += `**${eventType} Etkinlik Hava Durumu Analizi - ${location}:**\n\n`;
   } else {
-    recommendation += `🌤️ Weather Forecast for ${location} on ${date}:\n\n`;
+    recommendation += `**Hava Durumu Tahmini - ${location} - ${date}:**\n\n`;
   }
   
-  // Comfort level analysis
+  // Comfort level analysis - more flexible approach
   if (comfortIndex.score >= 85) {
-    recommendation += `✨ Excellent weather conditions! Perfect for outdoor activities and events.`;
+    recommendation += `Mükemmel hava koşulları! Açık hava aktiviteleri için ideal.`;
   } else if (comfortIndex.score >= 70) {
-    recommendation += `👍 Great weather! Ideal conditions for most outdoor activities.`;
+    recommendation += `İyi hava koşulları! Çoğu açık hava aktivitesi için uygun.`;
   } else if (comfortIndex.score >= 55) {
-    recommendation += `⚠️ Moderate weather conditions. Some activities may require extra preparation.`;
+    recommendation += `Orta düzeyde hava koşulları. Bazı aktiviteler ek hazırlık gerektirebilir.`;
   } else if (comfortIndex.score >= 40) {
-    recommendation += `⚠️ Challenging weather conditions. Consider indoor alternatives.`;
+    recommendation += `Zorlu hava koşulları. Alternatif planlar düşünülebilir.`;
   } else {
-    recommendation += `❌ Difficult weather conditions. Outdoor activities not recommended.`;
+    recommendation += `Zorlu hava koşulları. Açık hava aktivitelerinde dikkatli olun.`;
   }
   
   // Detailed recommendations
-  recommendation += `\n\n📊 Detailed Analysis:`;
+  recommendation += `\n\n**Detaylı Analiz:**`;
   
-  // Temperature recommendations
+  // Temperature recommendations - more flexible approach
   if (temp > 35) {
-    recommendation += `\n🌡️ Very hot conditions (${temp.toFixed(1)}°C). Stay hydrated, seek shade, and avoid prolonged sun exposure.`;
+    recommendation += `\n• **Sıcaklık:** ${temp.toFixed(1)}°C - Çok sıcak hava. Bol su içmeyi unutmayın, gölge alanları tercih edin.`;
   } else if (temp > 30) {
-    recommendation += `\n☀️ Warm weather (${temp.toFixed(1)}°C). Perfect for beach activities, but stay hydrated.`;
+    recommendation += `\n• **Sıcaklık:** ${temp.toFixed(1)}°C - Sıcak hava. Deniz aktiviteleri için uygun, ancak su tüketimine dikkat edin.`;
   } else if (temp > 20) {
-    recommendation += `\n😊 Pleasant temperature (${temp.toFixed(1)}°C). Ideal for most outdoor activities.`;
+    recommendation += `\n• **Sıcaklık:** ${temp.toFixed(1)}°C - Rahat sıcaklık. Çoğu açık hava aktivitesi için ideal.`;
   } else if (temp > 10) {
-    recommendation += `\n🧥 Cool weather (${temp.toFixed(1)}°C). Dress in layers for comfort.`;
+    recommendation += `\n• **Sıcaklık:** ${temp.toFixed(1)}°C - Serin hava. Katmanlı giyim rahatlık sağlayabilir.`;
   } else {
-    recommendation += `\n🥶 Cold conditions (${temp.toFixed(1)}°C). Bundle up and limit outdoor time.`;
+    recommendation += `\n• **Sıcaklık:** ${temp.toFixed(1)}°C - Soğuk hava. Sıcak giyin ve dışarıda kalma süresini sınırlayın.`;
   }
   
-  // Precipitation recommendations
+  // Precipitation recommendations - more flexible approach
   if (weather.precipitation > 10) {
-    recommendation += `\n🌧️ Heavy rain expected (${weather.precipitation}mm). Indoor activities strongly recommended.`;
+    recommendation += `\n• **Yağış:** ${weather.precipitation}mm - Yoğun yağış bekleniyor. Alternatif planlar düşünülebilir.`;
   } else if (weather.precipitation > 5) {
-    recommendation += `\n🌦️ Significant rainfall (${weather.precipitation}mm). Bring waterproof gear.`;
+    recommendation += `\n• **Yağış:** ${weather.precipitation}mm - Önemli yağış. Su geçirmez ekipman alın.`;
   } else if (weather.precipitation > 1) {
-    recommendation += `\n🌧️ Light rain possible (${weather.precipitation}mm). Have an umbrella ready.`;
+    recommendation += `\n• **Yağış:** ${weather.precipitation}mm - Hafif yağış mümkün. Şemsiye hazır bulundurun.`;
   } else if (weather.precipitation > 0) {
-    recommendation += `\n🌤️ Minimal precipitation (${weather.precipitation}mm). Generally dry conditions.`;
+    recommendation += `\n• **Yağış:** ${weather.precipitation}mm - Minimal yağış. Genellikle kuru koşullar.`;
   } else {
-    recommendation += `\n☀️ No precipitation expected. Perfect for outdoor activities.`;
+    recommendation += `\n• **Yağış:** Yağış beklenmiyor. Açık hava aktiviteleri için ideal.`;
   }
   
-  // Wind recommendations
+  // Wind recommendations - more flexible approach
   if (weather.windSpeed > 25) {
-    recommendation += `\n💨 Strong winds (${weather.windSpeed} km/h). Avoid outdoor activities and secure loose objects.`;
+    recommendation += `\n• **Rüzgar:** ${weather.windSpeed} km/h - Güçlü rüzgar. Açık hava aktivitelerinde dikkatli olun.`;
   } else if (weather.windSpeed > 15) {
-    recommendation += `\n🌬️ Moderate winds (${weather.windSpeed} km/h). Good for wind sports, but be cautious.`;
+    recommendation += `\n• **Rüzgar:** ${weather.windSpeed} km/h - Orta rüzgar. Rüzgar sporları için uygun, dikkatli olun.`;
   } else if (weather.windSpeed > 5) {
-    recommendation += `\n🍃 Light breeze (${weather.windSpeed} km/h). Pleasant for most activities.`;
+    recommendation += `\n• **Rüzgar:** ${weather.windSpeed} km/h - Hafif rüzgar. Çoğu aktivite için hoş.`;
   } else {
-    recommendation += `\n🌫️ Calm conditions (${weather.windSpeed} km/h). No wind concerns.`;
+    recommendation += `\n• **Rüzgar:** ${weather.windSpeed} km/h - Sakin hava. Rüzgar endişesi yok.`;
   }
   
-  // Humidity recommendations
+  // Humidity recommendations - more flexible approach
   if (weather.humidity > 80) {
-    recommendation += `\n💧 High humidity (${weather.humidity}%). Can feel muggy and uncomfortable.`;
+    recommendation += `\n• **Nem:** %${weather.humidity} - Yüksek nem. Bunaltıcı hissedilebilir.`;
   } else if (weather.humidity > 60) {
-    recommendation += `\n💧 Moderate humidity (${weather.humidity}%). Generally comfortable conditions.`;
+    recommendation += `\n• **Nem:** %${weather.humidity} - Orta nem. Genellikle rahat koşullar.`;
   } else if (weather.humidity < 30) {
-    recommendation += `\n🏜️ Low humidity (${weather.humidity}%). Dry conditions - stay hydrated.`;
+    recommendation += `\n• **Nem:** %${weather.humidity} - Düşük nem. Kuru koşullar - su tüketimine dikkat edin.`;
   } else {
-    recommendation += `\n💧 Normal humidity (${weather.humidity}%). Comfortable conditions.`;
+    recommendation += `\n• **Nem:** %${weather.humidity} - Normal nem. Rahat koşullar.`;
   }
   
-  // Event-specific recommendations
+  // Event-specific recommendations - more flexible approach
   if (eventType) {
-    recommendation += `\n\n🎉 Event-Specific Tips:`;
+    recommendation += `\n\n**Etkinlik Özel Önerileri:**`;
     
     switch (eventType.toLowerCase()) {
       case 'wedding':
-        recommendation += `\n💒 For your special day, consider indoor backup plans if rain is expected.`;
+        recommendation += `\n• Düğün gününüz için, yağış bekleniyorsa kapalı alan alternatif planları düşünün.`;
         break;
       case 'outdoor party':
-        recommendation += `\n🎊 Perfect for outdoor celebrations! Consider tents for shade or rain protection.`;
+        recommendation += `\n• Açık hava kutlamaları için uygun! Gölge veya yağmur koruması için çadır düşünün.`;
         break;
       case 'sports event':
-        recommendation += `\n⚽ Great conditions for sports! Ensure proper hydration and sun protection.`;
+        recommendation += `\n• Spor etkinlikleri için iyi koşullar! Uygun hidrasyon ve güneş koruması sağlayın.`;
         break;
       case 'picnic':
-        recommendation += `\n🧺 Ideal picnic weather! Don't forget sunscreen and plenty of water.`;
+        recommendation += `\n• İdeal piknik havası! Güneş kremi ve bol su almayı unutmayın.`;
         break;
       case 'hiking':
-        recommendation += `\n🥾 Excellent hiking conditions! Check trail conditions and bring appropriate gear.`;
+        recommendation += `\n• Yürüyüş için uygun koşullar! Parkur durumunu kontrol edin ve uygun ekipman alın.`;
         break;
       default:
-        recommendation += `\n🎯 Weather conditions are suitable for your ${eventType.toLowerCase()} event.`;
+        recommendation += `\n• Hava koşulları ${eventType.toLowerCase()} etkinliğiniz için uygun görünüyor.`;
     }
   }
   
@@ -548,6 +578,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const location = searchParams.get('location');
     const date = searchParams.get('date');
+    const endDate = searchParams.get('endDate');
     const eventType = searchParams.get('eventType');
 
     if (!location || !date) {
@@ -574,24 +605,67 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Validate endDate if provided
+    if (endDate && !dateRegex.test(endDate)) {
+      return NextResponse.json(
+        { error: 'End date format must be YYYY-MM-DD' },
+        { status: 400 }
+      );
+    }
+
     const requestDate = new Date(date + 'T00:00:00.000Z'); // Ensure UTC
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0); // Reset time to start of day UTC
+    
+    // Allow past dates for NASA historical data and future dates for forecasts
+    const minDate = new Date('2020-01-01'); // NASA POWER data available from 2020
     const maxDate = new Date();
-    maxDate.setUTCDate(today.getUTCDate() + 16); // 16 days in the future
+    maxDate.setUTCDate(today.getUTCDate() + 30); // 30 days in the future
 
     console.log('Date validation:', {
       requestDate: requestDate.toISOString(),
+      endDate: endDate,
       today: today.toISOString(),
+      minDate: minDate.toISOString(),
       maxDate: maxDate.toISOString(),
-      isValid: requestDate >= today && requestDate <= maxDate
+      isValid: requestDate >= minDate && requestDate <= maxDate
     });
 
-    if (requestDate < today || requestDate > maxDate) {
+    if (requestDate < minDate || requestDate > maxDate) {
       return NextResponse.json(
-        { error: `Date must be between ${today.toISOString().split('T')[0]} and ${maxDate.toISOString().split('T')[0]}` },
+        { error: `Date must be between ${minDate.toISOString().split('T')[0]} and ${maxDate.toISOString().split('T')[0]}` },
         { status: 400 }
       );
+    }
+
+    // Validate date range if endDate is provided
+    if (endDate) {
+      const requestEndDate = new Date(endDate + 'T00:00:00.000Z');
+      
+      if (requestEndDate <= requestDate) {
+        return NextResponse.json(
+          { error: 'End date must be after start date' },
+          { status: 400 }
+        );
+      }
+      
+      // Limit to 7 days max
+      const diffTime = Math.abs(requestEndDate.getTime() - requestDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays > 7) {
+        return NextResponse.json(
+          { error: 'Date range cannot exceed 7 days' },
+          { status: 400 }
+        );
+      }
+      
+      if (requestEndDate > maxDate) {
+        return NextResponse.json(
+          { error: `End date must be before ${maxDate.toISOString().split('T')[0]}` },
+          { status: 400 }
+        );
+      }
     }
 
     // Get coordinates for the location
@@ -601,25 +675,29 @@ export async function GET(request: NextRequest) {
     const weatherData = await getWeatherData(
       coordinates.latitude, 
       coordinates.longitude, 
-      date
+      date,
+      endDate || undefined
     );
 
-    // Get NASA POWER data
+    // Get NASA POWER data for the date range
     const nasaData = await getNASAPowerData(
       coordinates.latitude, 
       coordinates.longitude, 
-      date
+      date,
+      endDate || undefined
     );
 
-    // Calculate comfort index
+    // Calculate comfort index for the first day (or average if multiple days)
+    const isMultiDay = endDate && endDate !== date;
+    
     const weather = {
       temperature: {
-        max: weatherData.daily.temperature_2m_max[0],
-        min: weatherData.daily.temperature_2m_min[0]
+        max: isMultiDay ? Math.max(...weatherData.daily.temperature_2m_max) : weatherData.daily.temperature_2m_max[0],
+        min: isMultiDay ? Math.min(...weatherData.daily.temperature_2m_min) : weatherData.daily.temperature_2m_min[0]
       },
-      precipitation: weatherData.daily.precipitation_sum[0],
-      windSpeed: weatherData.daily.windspeed_10m_max[0],
-      humidity: weatherData.daily.relative_humidity_2m_max[0]
+      precipitation: isMultiDay ? weatherData.daily.precipitation_sum.reduce((a: number, b: number) => a + b, 0) : weatherData.daily.precipitation_sum[0],
+      windSpeed: isMultiDay ? Math.max(...weatherData.daily.windspeed_10m_max) : weatherData.daily.windspeed_10m_max[0],
+      humidity: isMultiDay ? weatherData.daily.relative_humidity_2m_max.reduce((a: number, b: number) => a + b, 0) / weatherData.daily.relative_humidity_2m_max.length : weatherData.daily.relative_humidity_2m_max[0]
     };
     
     const comfortIndex = calculateComfortIndex(weather);
@@ -685,6 +763,8 @@ export async function GET(request: NextRequest) {
         }
       },
       date,
+      endDate: endDate || null,
+      isMultiDay,
       weather: {
         temperature: {
           max: weatherData.daily.temperature_2m_max[0],
@@ -703,18 +783,28 @@ export async function GET(request: NextRequest) {
         visibility: 10, // Default visibility
         pressure: 1013.25 // Default pressure in hPa
       },
+      // Include all daily data for chart rendering
+      dailyData: weatherData.daily,
       comfortIndex,
       nasaData: nasaData && nasaData.properties && nasaData.properties.parameter ? {
         solarRadiation: nasaData.properties.parameter.ALLSKY_SFC_SW_DWN ? 
-          Object.values(nasaData.properties.parameter.ALLSKY_SFC_SW_DWN)[0] : null,
+          Object.values(nasaData.properties.parameter.ALLSKY_SFC_SW_DWN)[0] as number : null,
         temperature: {
           max: nasaData.properties.parameter.T2M_MAX ? 
-            Object.values(nasaData.properties.parameter.T2M_MAX)[0] : null,
+            Object.values(nasaData.properties.parameter.T2M_MAX)[0] as number : null,
           min: nasaData.properties.parameter.T2M_MIN ? 
-            Object.values(nasaData.properties.parameter.T2M_MIN)[0] : null
+            Object.values(nasaData.properties.parameter.T2M_MIN)[0] as number : null
         },
         humidity: nasaData.properties.parameter.RH2M ? 
-          Object.values(nasaData.properties.parameter.RH2M)[0] : null
+          Object.values(nasaData.properties.parameter.RH2M)[0] as number : null,
+        pressure: nasaData.properties.parameter.PS ? 
+          Object.values(nasaData.properties.parameter.PS)[0] as number : null,
+        windSpeed: nasaData.properties.parameter.WS10M ? 
+          Object.values(nasaData.properties.parameter.WS10M)[0] as number : 
+          (nasaData.properties.parameter.WS2M ? 
+            Object.values(nasaData.properties.parameter.WS2M)[0] as number : null),
+        precipitation: nasaData.properties.parameter.PRECTOT ? 
+          Object.values(nasaData.properties.parameter.PRECTOT)[0] as number : null
       } : null,
       aiRecommendation
     };

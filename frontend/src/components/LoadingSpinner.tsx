@@ -11,7 +11,7 @@ interface LoadingSpinnerProps {
 
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
   size = 'md', 
-  message = 'Yükleniyor...',
+  message = 'Loading...',
   showWeatherIcons = true 
 }) => {
   const getSizeClasses = () => {
@@ -97,7 +97,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
       {/* Additional Info */}
       <div className="text-center max-w-md">
         <p className="text-sm text-white/70 leading-relaxed">
-          Hava durumu verileri analiz ediliyor ve AI önerileri hazırlanıyor...
+          Analyzing weather data and preparing AI recommendations...
         </p>
       </div>
     </div>

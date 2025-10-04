@@ -8,6 +8,8 @@ export interface WeatherData {
     };
   };
   date: string;
+  endDate?: string | null;
+  isMultiDay?: boolean;
   weather: {
     temperature: {
       max: number;
@@ -24,6 +26,19 @@ export interface WeatherData {
     visibility: number;
     pressure: number;
   };
+  dailyData?: {
+    time: string[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    precipitation_sum: number[];
+    windspeed_10m_max: number[];
+    winddirection_10m_dominant: number[];
+    relative_humidity_2m_max: number[];
+    weathercode: number[];
+    uv_index_max: number[];
+    sunset: string[];
+    sunrise: string[];
+  } | null;
   comfortIndex: {
     score: number;
     level: string;
@@ -37,8 +52,32 @@ export interface WeatherData {
       min: number | null;
     };
     humidity: number | null;
+    pressure: number | null;
+    windSpeed: number | null;
+    precipitation: number | null;
   } | null;
   aiRecommendation: string;
+  weatherProbabilities?: {
+    veryHot: number;
+    veryCold: number;
+    veryWindy: number;
+    veryWet: number;
+    veryUncomfortable: number;
+  };
+  historicalAnalysis?: {
+    period: string;
+    trends: {
+      temperature: 'increasing' | 'decreasing' | 'stable';
+      precipitation: 'increasing' | 'decreasing' | 'stable';
+      windSpeed: 'increasing' | 'decreasing' | 'stable';
+    };
+    statistics: {
+      averageTemperature: number;
+      averagePrecipitation: number;
+      averageWindSpeed: number;
+      extremeEvents: number;
+    };
+  };
 }
 
 export interface WeatherSearchProps {
