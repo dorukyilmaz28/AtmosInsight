@@ -1,8 +1,4 @@
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Using fetch API instead of OpenAI SDK to avoid module resolution issues
 
 export interface WeatherAnalysisRequest {
   location: string;
@@ -29,8 +25,8 @@ export interface AIRecommendation {
 }
 
 export async function getAIWeatherAnalysis(request: WeatherAnalysisRequest): Promise<AIRecommendation> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OpenAI API key not configured');
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error('OpenRouter API key not configured');
   }
 
   const prompt = `
@@ -54,7 +50,7 @@ Please provide:
 4. Practical tips for the event
 5. Alternative suggestions if weather is challenging
 
-Respond in JSON format:
+Respond ONLY in valid JSON format (no markdown, no code blocks):
 {
   "recommendation": "string",
   "confidence": number,
@@ -71,29 +67,79 @@ Respond in JSON format:
 `;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: "You are a professional weather advisor specializing in outdoor event planning. Provide accurate, practical, and safety-focused recommendations based on weather data."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 1000,
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "HTTP-Referer": process.env.SITE_URL || "https://atmos-insight.vercel.app",
+        "X-Title": process.env.SITE_NAME || "AtmosInsight",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        "model": "openai/gpt-oss-20b:free",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a professional weather advisor specializing in outdoor event planning. Provide accurate, practical, and safety-focused recommendations based on weather data."
+          },
+          {
+            "role": "user",
+            "content": prompt
+          }
+        ],
+        "temperature": 0.5,
+        "max_tokens": 800
+      })
     });
 
-    const response = completion.choices[0]?.message?.content;
-    if (!response) {
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiContent = data.choices?.[0]?.message?.content;
+    if (!aiContent) {
       throw new Error('No response from AI');
     }
 
-    // Parse JSON response
-    const aiResponse = JSON.parse(response);
+    // Clean and parse JSON response
+    let cleanContent = aiContent.trim();
+    
+    // Remove markdown code blocks if present
+    if (cleanContent.startsWith('```json')) {
+      cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanContent.startsWith('```')) {
+      cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    // Try to find JSON object in the response
+    const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleanContent = jsonMatch[0];
+    }
+    
+    let aiResponse;
+    try {
+      aiResponse = JSON.parse(cleanContent);
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError);
+      console.error('Raw content:', cleanContent);
+      
+      // Fallback response if JSON parsing fails
+      aiResponse = {
+        recommendation: "Weather analysis completed. Please check the conditions and plan accordingly.",
+        confidence: 70,
+        risks: [
+          {
+            type: "general",
+            probability: 30,
+            description: "Standard weather precautions recommended"
+          }
+        ],
+        tips: ["Check local weather updates", "Bring appropriate clothing"],
+        alternatives: ["Consider indoor alternatives if conditions worsen"]
+      };
+    }
     
     return {
       recommendation: aiResponse.recommendation || "Unable to provide recommendation",

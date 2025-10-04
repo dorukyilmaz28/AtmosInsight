@@ -11,6 +11,7 @@ import AIActivityAssessment from '@/components/AIActivityAssessment';
 import AdvancedNASAData from '@/components/AdvancedNASAData';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import DecisionBar from '@/components/DecisionBar';
+import AIChat from '@/components/AIChat';
 import { WeatherData } from '@/types/weather';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -640,6 +641,18 @@ ${optimalTimes.map(time => `• ${time}`).join('\n')}`;
           </div>
         </>
       )}
+      
+      {/* AI Chat Bot */}
+      <AIChat 
+        currentWeather={weatherData?.weather ? {
+          temperature: weatherData.weather.temperature.max,
+          description: weatherData.weather.description,
+          windSpeed: weatherData.weather.windSpeed,
+          humidity: weatherData.weather.humidity,
+          uvIndex: weatherData.weather.uvIndex
+        } : undefined}
+        location={eventData?.location}
+      />
     </div>
   );
 }
