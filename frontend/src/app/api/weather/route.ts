@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
+
 // Open-Meteo API configuration
 const OPEN_METEO_BASE_URL = 'https://api.open-meteo.com/v1/forecast';
 
