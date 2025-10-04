@@ -1,0 +1,17 @@
+{
+  "name": "atmos-insight",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd frontend && npm run build",
+    "start": "cd frontend && npm start",
+    "dev": "cd frontend && npm run dev",
+    "install": "cd frontend && npm install"
+  },
+  "workspaces": [
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
