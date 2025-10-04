@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAIWeatherAnalysis } from '@/services/aiService';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
@@ -811,6 +812,27 @@ export async function GET(request: NextRequest) {
       } : null,
       aiRecommendation
     };
+
+    // Get AI Analysis
+    try {
+      const aiAnalysis = await getAIWeatherAnalysis({
+        location,
+        date,
+        eventType: eventType || 'outdoor activity',
+        temperature: response.weather.temperature.max,
+        windSpeed: response.weather.windSpeed,
+        precipitation: response.weather.precipitation,
+        humidity: response.weather.humidity,
+        uvIndex: response.weather.uvIndex,
+        weatherDescription: response.weather.description
+      });
+
+      // Add AI analysis to response
+      response.aiAnalysis = aiAnalysis;
+    } catch (aiError) {
+      console.error('AI Analysis Error:', aiError);
+      // Continue without AI analysis
+    }
 
     return NextResponse.json(response);
   } catch (error) {
