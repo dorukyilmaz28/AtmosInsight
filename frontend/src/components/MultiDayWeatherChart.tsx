@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { Download, BarChart3, Thermometer, Wind, Droplets, Eye, Sun, Calendar } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Bar } from 'recharts';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface DayWeatherData {
   date: string;
@@ -36,6 +36,14 @@ export default function MultiDayWeatherChart({
   onDownload 
 }: MultiDayWeatherChartProps) {
   const [activeChart, setActiveChart] = useState<'temperature' | 'wind' | 'precipitation' | 'humidity' | 'uv'>('temperature');
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
+
+  useEffect(() => {
+    const updateScreen = () => setIsSmallScreen(window.innerWidth < 640);
+    updateScreen();
+    window.addEventListener('resize', updateScreen);
+    return () => window.removeEventListener('resize', updateScreen);
+  }, []);
 
   // Calculate number of days - ensure minimum 1 day
   const start = new Date(startDate);
@@ -297,20 +305,21 @@ export default function MultiDayWeatherChart({
         </div>
 
         {/* Chart */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-          <div className="h-80">
+        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-white/10">
+          <div style={{ height: isSmallScreen ? 220 : 320 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <ComposedChart data={chartData} margin={{ top: 10, right: isSmallScreen ? 10 : 30, left: isSmallScreen ? 0 : 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
                   dataKey="day" 
                   stroke="#9CA3AF"
-                  fontSize={12}
+                  interval={isSmallScreen ? 0 : 0}
+                  fontSize={isSmallScreen ? 10 : 12}
                   tickLine={{ stroke: '#6B7280' }}
                 />
                 <YAxis 
                   stroke="#9CA3AF"
-                  fontSize={12}
+                  fontSize={isSmallScreen ? 10 : 12}
                   tickLine={{ stroke: '#6B7280' }}
                   domain={['dataMin - 2', 'dataMax + 2']}
                   tickCount={6}
@@ -333,8 +342,8 @@ export default function MultiDayWeatherChart({
                   type="monotone"
                   dataKey={currentConfig.dataKey}
                   stroke={currentConfig.color}
-                  strokeWidth={activeChart === 'temperature' ? 4 : 3}
-                  dot={{ fill: currentConfig.color, strokeWidth: 2, r: activeChart === 'temperature' ? 6 : 4 }}
+                  strokeWidth={isSmallScreen ? 2 : (activeChart === 'temperature' ? 4 : 3)}
+                  dot={{ fill: currentConfig.color, strokeWidth: 2, r: isSmallScreen ? 3 : (activeChart === 'temperature' ? 6 : 4) }}
                   activeDot={{ r: 6, stroke: currentConfig.color, strokeWidth: 2 }}
                   name={currentConfig.label}
                   connectNulls={false}

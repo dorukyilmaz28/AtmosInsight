@@ -118,6 +118,27 @@ Respond ONLY in valid JSON format (no markdown, no code blocks):
       cleanContent = jsonMatch[0];
     }
     
+    // Fix common JSON issues and attempt minimal repair for arrays/objects
+    cleanContent = cleanContent
+      .replace(/,\s*}/g, '}')  // Remove trailing commas before }
+      .replace(/,\s*]/g, ']')  // Remove trailing commas before ]
+      .replace(/}\s*$/, '}');  // Ensure proper closing
+
+    // If content appears to be almost-valid JSON but has unmatched brackets, try to repair
+    const openCurly = (cleanContent.match(/\{/g) || []).length;
+    const closeCurly = (cleanContent.match(/\}/g) || []).length;
+    const openSquare = (cleanContent.match(/\[/g) || []).length;
+    const closeSquare = (cleanContent.match(/\]/g) || []).length;
+
+    let repairedContent = cleanContent;
+    if (closeCurly < openCurly) {
+      repairedContent = repairedContent + '}'.repeat(openCurly - closeCurly);
+    }
+    if (closeSquare < openSquare) {
+      repairedContent = repairedContent + ']'.repeat(openSquare - closeSquare);
+    }
+    cleanContent = repairedContent;
+    
     let aiResponse;
     try {
       aiResponse = JSON.parse(cleanContent);

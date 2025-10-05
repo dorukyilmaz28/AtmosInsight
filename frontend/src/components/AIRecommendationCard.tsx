@@ -32,7 +32,7 @@ export default function AIRecommendationCard({
   location, 
   date, 
   eventType,
-  onDownload 
+  onDownload
 }: AIRecommendationCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 

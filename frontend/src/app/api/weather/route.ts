@@ -624,7 +624,7 @@ export async function GET(request: NextRequest) {
     // Allow past dates for NASA historical data and future dates for forecasts
     const minDate = new Date('2020-01-01'); // NASA POWER data available from 2020
     const maxDate = new Date();
-    maxDate.setUTCDate(today.getUTCDate() + 30); // 30 days in the future
+    maxDate.setUTCFullYear(today.getUTCFullYear() + 2); // 2 years in the future (2027)
 
     console.log('Date validation:', {
       requestDate: requestDate.toISOString(),
@@ -757,7 +757,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Format response
-    const response = {
+    let response: any = {
       location: {
         name: coordinates.name,
         country: coordinates.country,
@@ -824,7 +824,7 @@ export async function GET(request: NextRequest) {
         precipitation: response.weather.precipitation,
         humidity: response.weather.humidity,
         uvIndex: response.weather.uvIndex,
-        weatherDescription: response.weather.description
+        weatherDescription: response.weather.weatherDescription
       });
 
       // Add AI analysis to response

@@ -320,6 +320,14 @@ ${optimalTimes.map(time => `• ${time}`).join('\n')}`;
         recommendationText += `\n\nCold weather (${avgTemp.toFixed(1)}°C), wear warm clothes.`;
       }
 
+      // Build alternative days relative to selected date (next suitable dates)
+      const baseDate = new Date(eventData.date);
+      const addDays = (d: Date, n: number) => {
+        const nd = new Date(d);
+        nd.setDate(nd.getDate() + n);
+        return nd.toISOString().split('T')[0];
+      };
+
       const mockRecommendation: AIRecommendation = {
         recommendation: recommendationText,
         confidence: Math.floor(confidence),
@@ -366,7 +374,7 @@ ${optimalTimes.map(time => `• ${time}`).join('\n')}`;
                        `Weather conditions are comfortable.`
           }
         ].filter(risk => risk.probability > 15),
-        alternativeDays: ['2024-06-15', '2024-06-20', '2024-06-25', '2024-06-30'],
+        alternativeDays: [addDays(baseDate, 5), addDays(baseDate, 10), addDays(baseDate, 15), addDays(baseDate, 20)],
         summary: isMultiDay && weatherData?.dailyData ? 
           `${Math.ceil((new Date(eventData.endDate!).getTime() - new Date(eventData.date).getTime()) / (1000 * 60 * 60 * 24)) + 1}-Day Weather Summary: Temperature ${Math.min(...weatherData.dailyData.temperature_2m_min)}°C - ${Math.max(...weatherData.dailyData.temperature_2m_max)}°C | Total Precipitation ${weatherData.dailyData.precipitation_sum.reduce((a: number, b: number) => a + b, 0).toFixed(1)}mm | Highest Wind ${Math.max(...weatherData.dailyData.windspeed_10m_max).toFixed(1)} km/h` :
           `Weather Summary: ${temp}°C (${temp > 25 ? 'Hot' : temp < 10 ? 'Cold' : 'Mild'}) | Wind ${wind} km/h (${wind > 20 ? 'Strong' : wind > 10 ? 'Moderate' : 'Light'}) | Precipitation ${precip}mm (${precip > 10 ? 'Heavy' : precip > 5 ? 'Moderate' : 'Light'}) | Humidity ${humidity}% (${humidity > 80 ? 'High' : humidity > 60 ? 'Moderate' : 'Low'})`
@@ -646,13 +654,14 @@ ${optimalTimes.map(time => `• ${time}`).join('\n')}`;
       <AIChat 
         currentWeather={weatherData?.weather ? {
           temperature: weatherData.weather.temperature.max,
-          description: weatherData.weather.description,
+          description: weatherData.weather.description || 'Clear sky',
           windSpeed: weatherData.weather.windSpeed,
           humidity: weatherData.weather.humidity,
           uvIndex: weatherData.weather.uvIndex
         } : undefined}
         location={eventData?.location}
       />
+
     </div>
   );
 }

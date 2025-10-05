@@ -146,9 +146,14 @@ export default function EnhancedWeatherSearch({ onSearch, loading = false }: Enh
     return `${year}-${month}-${day}`;
   };
 
+  const getMinDate = () => {
+    // Allow dates from 2020 (when NASA POWER data starts)
+    return '2020-01-01';
+  };
+
   const getMaxDate = () => {
     const today = new Date();
-    const maxDate = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+    const maxDate = new Date(today.getFullYear() + 2, today.getMonth(), today.getDate()); // 2 years in the future (2027)
     const year = maxDate.getFullYear();
     const month = String(maxDate.getMonth() + 1).padStart(2, '0');
     const day = String(maxDate.getDate()).padStart(2, '0');
@@ -275,7 +280,7 @@ export default function EnhancedWeatherSearch({ onSearch, loading = false }: Enh
                   type="date"
                   value={formData.date}
                   onChange={(e) => handleInputChange('date', e.target.value)}
-                  min={getCurrentDate()}
+                  min={getMinDate()}
                   max={getMaxDate()}
                   className={`w-full px-4 py-3 pl-12 bg-gray-800/50 border rounded-xl focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-200 text-white ${
                     errors.date ? 'border-red-400 bg-red-500/10' : 'border-gray-600/30 hover:border-cyan-400/50'
@@ -303,7 +308,7 @@ export default function EnhancedWeatherSearch({ onSearch, loading = false }: Enh
                     type="date"
                     value={formData.endDate || ''}
                     onChange={(e) => handleInputChange('endDate', e.target.value)}
-                    min={formData.date || getCurrentDate()}
+                    min={getMinDate()}
                     max={getMaxDate()}
                     className={`w-full px-4 py-3 pl-12 bg-gray-800/50 border rounded-xl focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-200 text-white ${
                       errors.endDate ? 'border-red-400 bg-red-500/10' : 'border-gray-600/30 hover:border-cyan-400/50'

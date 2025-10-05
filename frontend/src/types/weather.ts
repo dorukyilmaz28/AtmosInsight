@@ -25,6 +25,7 @@ export interface WeatherData {
     sunrise: string;
     visibility: number;
     pressure: number;
+    description?: string;
   };
   dailyData?: {
     time: string[];
